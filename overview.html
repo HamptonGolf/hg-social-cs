@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Properties - Social Command Center</title>
+    <link rel="icon" type="image/png" href="assets/logos/HG_DoorElement_CMYK.png">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #05070a; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #00B451, #006600); border-radius: 6px; border: 2px solid #05070a; }
+        ::-webkit-scrollbar-thumb:hover { background: #00B451; }
+        * { scrollbar-color: #00B451 #05070a; }
+
+        html, body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #05070a;
+            color: white;
+            min-height: 100vh;
+        }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.75; transform: scale(1.1); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            background: #0a0d12;
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem 1.5rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .sidebar-header img {
+            width: 38px;
+            height: 38px;
+            background: white;
+            border-radius: 9px;
+            padding: 5px;
+            object-fit: contain;
+        }
+
+        .sidebar-header-text .name { font-size: 0.938rem; font-weight: 800; letter-spacing: -0.01em; }
+        .sidebar-header-text .sub { font-size: 0.688rem; color: rgba(255,255,255,0.4); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+
+        .sidebar-nav {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.75rem 0.9rem;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(0, 180, 81, 0.18), rgba(0, 102, 0, 0.1));
+            color: white;
+            border: 1px solid rgba(0, 180, 81, 0.3);
+        }
+
+        .nav-item:not(.active):hover { background: rgba(255, 255, 255, 0.04); color: white; }
+
+        .sidebar-search {
+            padding: 0.9rem 1rem 0.6rem;
+        }
+
+        .sidebar-search input {
+            width: 100%;
+            padding: 0.7rem 0.9rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 9px;
+            color: white;
+            font-size: 0.813rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .sidebar-search input:focus { outline: none; border-color: #00B451; }
+        .sidebar-search input::placeholder { color: rgba(255,255,255,0.3); }
+
+        .sidebar-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.25rem 0.75rem 1rem;
+        }
+
+        .sidebar-club {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.55rem 0.6rem;
+            border-radius: 9px;
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.813rem;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            margin-bottom: 2px;
+        }
+
+        .sidebar-club:hover { background: rgba(255, 255, 255, 0.05); }
+
+        .sidebar-club img {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 6px;
+            padding: 2px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .sidebar-club-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .status-chip {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-chip.ok { background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.7); }
+        .status-chip.watch { background: #fbbf24; box-shadow: 0 0 6px rgba(251, 191, 36, 0.7); }
+        .status-chip.gap { background: #f87171; box-shadow: 0 0 6px rgba(248, 113, 113, 0.7); animation: pulse 1.8s infinite; }
+        .status-chip.unknown { background: rgba(255,255,255,0.2); }
+
+        .sidebar-footer {
+            padding: 1rem 1.25rem 1.25rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .logout-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.813rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .logout-link:hover { color: white; }
+
+        /* ── Main ── */
+        .main {
+            flex: 1;
+            min-width: 0;
+            padding: 2rem 2.5rem 3rem;
+        }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .main-header h1 {
+            font-size: 1.875rem;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.35rem;
+        }
+
+        .main-header p {
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 0.938rem;
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .icon-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.7rem 1.1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 0.813rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .icon-btn:hover { background: rgba(255, 255, 255, 0.09); border-color: rgba(0, 180, 81, 0.4); }
+
+        .sync-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.6rem 1rem;
+            background: rgba(0, 180, 81, 0.08);
+            border: 1px solid rgba(0, 180, 81, 0.25);
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #4ade80;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; animation: pulse 2s infinite; }
+
+        /* Stats */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.6s ease 0.1s both;
+        }
+
+        .stat-tile {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1.25rem 1.4rem;
+        }
+
+        .stat-tile .num { font-size: 2rem; font-weight: 900; line-height: 1; margin-bottom: 0.4rem; letter-spacing: -0.02em; }
+        .stat-tile .lbl { font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.06em; }
+        .stat-tile.ok .num { color: #4ade80; }
+        .stat-tile.gap .num { color: #f87171; }
+        .stat-tile.watch .num { color: #fbbf24; }
+
+        /* Property grid */
+        .grid-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .grid-header h2 {
+            font-size: 1.125rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: rgba(255,255,255,0.85);
+        }
+
+        .filter-tabs { display: flex; gap: 0.4rem; }
+
+        .filter-tab {
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.55);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-tab.active { background: rgba(0, 180, 81, 0.15); border-color: rgba(0, 180, 81, 0.4); color: #4ade80; }
+        .filter-tab:hover:not(.active) { background: rgba(255, 255, 255, 0.08); }
+
+        .properties-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            animation: fadeInUp 0.6s ease 0.2s both;
+        }
+
+        .property-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 1.4rem;
+            text-decoration: none;
+            color: white;
+            display: block;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .property-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--pc-color, #4ade80);
+        }
+
+        .property-card.status-gap {
+            border-color: rgba(248, 113, 113, 0.35);
+            background: linear-gradient(135deg, rgba(248, 113, 113, 0.06), rgba(255,255,255,0.03));
+        }
+
+        .property-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--club-primary, rgba(0,180,81,0.5));
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .property-card-top {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .property-card img {
+            width: 44px;
+            height: 44px;
+            background: white;
+            border-radius: 10px;
+            padding: 6px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .property-card-name {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .property-card-name .title {
+            font-size: 0.938rem;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-bottom: 0.2rem;
+        }
+
+        .property-card-name .code {
+            font-size: 0.688rem;
+            color: rgba(255,255,255,0.35);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.04em;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.688rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.9rem;
+        }
+
+        .status-pill.ok { background: rgba(74, 222, 128, 0.14); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+        .status-pill.watch { background: rgba(251, 191, 36, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+        .status-pill.gap { background: rgba(248, 113, 113, 0.14); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.3); }
+        .status-pill.unknown { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); }
+
+        .property-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 500;
+        }
+
+        .property-meta strong { color: rgba(255,255,255,0.85); font-weight: 700; }
+
+        .sparkline {
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+            height: 22px;
+            margin: 0.9rem 0;
+        }
+
+        .spark-bar {
+            flex: 1;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.08);
+            min-height: 4px;
+        }
+
+        .spark-bar.has-post { background: linear-gradient(180deg, #4ade80, #00B451); }
+        .spark-bar.is-gap { background: linear-gradient(180deg, #f87171, #b91c1c); }
+
+        .loading-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 5rem 0;
+        }
+
+        .spinner {
+            width: 52px; height: 52px;
+            border: 4px solid rgba(255, 255, 255, 0.08);
+            border-top-color: #00B451;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 1.25rem;
+        }
+
+        .loading-state p { color: rgba(255,255,255,0.4); font-weight: 500; }
+
+        .mock-banner {
+            display: none;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(251, 191, 36, 0.08);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+            padding: 0.85rem 1.1rem;
+            border-radius: 12px;
+            font-size: 0.813rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .mock-banner.show { display: flex; }
+
+        /* Settings modal */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 2rem;
+        }
+
+        .modal-overlay.show { display: flex; }
+
+        .modal {
+            background: #0c0f14;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            max-width: 560px;
+            width: 100%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 1.5rem 1.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 { font-size: 1.125rem; font-weight: 800; }
+
+        .modal-close {
+            background: none; border: none; color: rgba(255,255,255,0.5);
+            font-size: 1.5rem; cursor: pointer; line-height: 1;
+        }
+
+        .modal-close:hover { color: white; }
+
+        .modal-body {
+            padding: 1.25rem 1.75rem;
+            overflow-y: auto;
+        }
+
+        .modal-body p.hint {
+            color: rgba(255,255,255,0.45);
+            font-size: 0.813rem;
+            margin-bottom: 1.25rem;
+            line-height: 1.5;
+        }
+
+        .threshold-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .threshold-row img { width: 26px; height: 26px; background: white; border-radius: 6px; padding: 3px; object-fit: contain; }
+        .threshold-row .tname { flex: 1; font-size: 0.813rem; font-weight: 600; }
+        .threshold-row input {
+            width: 64px;
+            padding: 0.4rem 0.5rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 7px;
+            color: white;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+        }
+        .threshold-row .days-lbl { font-size: 0.688rem; color: rgba(255,255,255,0.4); width: 32px; }
+
+        .modal-footer {
+            padding: 1.1rem 1.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #00B451, #006600);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.813rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .main { padding: 1.5rem 1.25rem 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="assets/logos/HG_DoorElement_CMYK.png" alt="Hampton Golf">
+                <div class="sidebar-header-text">
+                    <div class="name">Hampton Golf</div>
+                    <div class="sub">Social Command Center</div>
+                </div>
+            </div>
+
+            <div class="sidebar-nav">
+                <button class="nav-item active">📊 All Properties</button>
+            </div>
+
+            <div class="sidebar-search">
+                <input type="text" id="sidebarSearch" placeholder="Jump to property...">
+            </div>
+
+            <div class="sidebar-list" id="sidebarList"></div>
+
+            <div class="sidebar-footer">
+                <button class="logout-link" onclick="logout()">
+                    <span>←</span> Sign out
+                </button>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="main-header">
+                <div>
+                    <h1>All Properties</h1>
+                    <p>Social content schedule &amp; posting-gap monitor</p>
+                </div>
+                <div class="header-actions">
+                    <span class="sync-pill" id="syncPill"><span class="sync-dot"></span>Live from Trello</span>
+                    <button class="icon-btn" onclick="openSettings()">⚙️ Gap Thresholds</button>
+                    <button class="icon-btn" onclick="refreshData()">↻ Refresh</button>
+                </div>
+            </div>
+
+            <div class="mock-banner" id="mockBanner">
+                ⚠️ Showing sample data for properties not yet connected to Trello — see the README to wire up live lists.
+            </div>
+
+            <div class="stats-row" id="statsRow">
+                <div class="stat-tile"><div class="num">—</div><div class="lbl">Properties</div></div>
+                <div class="stat-tile ok"><div class="num">—</div><div class="lbl">On Track</div></div>
+                <div class="stat-tile watch"><div class="num">—</div><div class="lbl">Watch</div></div>
+                <div class="stat-tile gap"><div class="num">—</div><div class="lbl">Gap Detected</div></div>
+            </div>
+
+            <div class="grid-header">
+                <h2>Properties</h2>
+                <div class="filter-tabs" id="filterTabs">
+                    <button class="filter-tab active" data-filter="all">All</button>
+                    <button class="filter-tab" data-filter="gap">Gaps Only</button>
+                    <button class="filter-tab" data-filter="watch">Watch</button>
+                    <button class="filter-tab" data-filter="ok">On Track</button>
+                </div>
+            </div>
+
+            <div class="properties-grid" id="propertiesGrid">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading social schedules across all properties...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Gap Thresholds</h3>
+                <button class="modal-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="hint">Set how many days without a scheduled post triggers a gap flag for each property. Lower-volume clubs can tolerate a longer gap than high-volume ones.</p>
+                <div id="thresholdList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-save" onclick="saveThresholds()">Save &amp; Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── Club registry ─────────────────────────────────────────────
+        // Mirrors the project-dashboard's CLUBS config (same names, brand colors,
+        // and logo filenames — point this tool at the same /assets/logos/ folder
+        // and everything resolves automatically).
+        //
+        // socialListId: the Trello LIST id that holds each club's campaign cards
+        // with the "Scheduled Posts" custom field. These are placeholders (null)
+        // until dedicated social-scheduling lists are set up — until then the
+        // backend returns realistic sample data for that club so the tool is
+        // fully testable end-to-end.
+        //
+        // gapThresholdDays: default days-without-a-post before a gap is flagged.
+        // Editable live from the "Gap Thresholds" panel (persisted per-browser).
+        const CLUBS = {
+            "AC":   { name: "Astor Creek Golf & Country Club", primary: "#2B5265", logo: "AC_Blue (2).png", socialListId: null, gapThresholdDays: 2 },
+            "BS":   { name: "Blue Sky Golf Club", primary: "#3A8DDE", secondary: "#808284", logo: "BS_Logo_clr.png", socialListId: null, gapThresholdDays: 3 },
+            "DCC":  { name: "Deerwood Country Club", primary: "#6BA66C", secondary: "#000000", logo: "logo-clr.png", socialListId: null, gapThresholdDays: 3 },
+            "ECHO": { name: "Echo Hills Golf Course", primary: "#002A3A", logo: "ECHO-Logo-blk.png", socialListId: null, gapThresholdDays: 4 },
+            "EH":   { name: "Eagle Harbor Golf Club", primary: "#008A5E", logo: "Eagle Harbor PMS 3415 vert.png", socialListId: null, gapThresholdDays: 3 },
+            "FF":   { name: "Falcon's Fire Golf Club", primary: "#B73330", secondary: "#938055", logo: "FF-logo-clr.png", socialListId: null, gapThresholdDays: 3 },
+            "FPP":  { name: "Fort Piqua Plaza", primary: "#A39161", logo: "Fort logo with drop shadow.png", socialListId: null, gapThresholdDays: 4 },
+            "GK":   { name: "Glen Kernan Club", primary: "#7B7F80", logo: "GK - LOGO-BLK (1).png", socialListId: null, gapThresholdDays: 3 },
+            "GCC":  { name: "Glynlea Country Club", primary: "#15576b", secondary: "#3399cc", logo: "Glynlea Flying Bird - clr.png", socialListId: null, gapThresholdDays: 3 },
+            "HCC":  { name: "Hampshire Country Club", primary: "#00483A", logo: "HCC-Logo-clr.png", socialListId: null, gapThresholdDays: 3 },
+            "HH":   { name: "Harbor Hills Country Club", primary: "#C29B43", logo: "HH-Logo-clr.png", socialListId: null, gapThresholdDays: 3 },
+            "KGGC": { name: "Kings Gate Golf Club", primary: "#788592", secondary: "#475563", logo: "KGGC_logo_VERT_blk.png", socialListId: null, gapThresholdDays: 3 },
+            "LO":   { name: "Laurel Oak Country Club", primary: "#C2A06E", logo: "Laurel Oak Logo_gold+blk.png", socialListId: null, gapThresholdDays: 3 },
+            "MVC":  { name: "Medalist Village Club", primary: "#0F2544", secondary: "#C38B6D", logo: "MVC-logo.png", socialListId: null, gapThresholdDays: 4 },
+            "NCC":  { name: "Northland Country Club", primary: "#40683C", logo: "NCC logo_blue grey.png", socialListId: null, gapThresholdDays: 3 },
+            "PR/DWN": { name: "Panther Run Golf Club", primary: "#0082CA", secondary: "#00344C", logo: "PR-Logo-Clr.png", socialListId: null, gapThresholdDays: 3 },
+            "PS":   { name: "PipeStone Golf Club", primary: "#653230", secondary: "#5B6670", logo: "PS_logo_clr.png", socialListId: null, gapThresholdDays: 3 },
+            "RBCC": { name: "Rarity Bay Golf & Country Club", primary: "#003B5C", secondary: "#6AADE4", logo: "RBCC_logo-removebg-preview (2).png", socialListId: null, gapThresholdDays: 4 },
+            "RH":   { name: "River Hall Country Club", primary: "#465967", logo: "RHlogo_color CC.png", socialListId: null, gapThresholdDays: 3 },
+            "RMC":  { name: "Roscoe Mountain Club", primary: "#006600", logo: "RMC_PrimaryLogo_Green.png", socialListId: null, gapThresholdDays: 3 },
+            "RVCC": { name: "Raritan Valley Country Club", primary: "#2A3561", secondary: "#D1CC8E", logo: "logo-mark.png", socialListId: null, gapThresholdDays: 3 },
+            "SW":   { name: "Stillwater Golf & Country Club", primary: "#6FA088", secondary: "#003A70", logo: "SW_Logo-Color (1).png", socialListId: null, gapThresholdDays: 3 },
+            "SCGC": { name: "Stone Creek Golf Club", primary: "#845D32", secondary: "#124734", logo: "SC_logo_clr.png", socialListId: null, gapThresholdDays: 3 },
+            "STG":  { name: "Stonegate Golf Club", primary: "#546122", secondary: "#D7282F", logo: "StonegateLOGO-clr.png", socialListId: null, gapThresholdDays: 3 },
+            "TARA": { name: "Tara Golf and Country Club", primary: "#AD8A57", secondary: "#008F4E", logo: "Tara Logos.png", socialListId: null, gapThresholdDays: 3 },
+            "TER":  { name: "Terreno", primary: "#12425E", secondary: "#29A8AB", logo: "Terreno_by_DiVosta_Logo clr.png", socialListId: null, gapThresholdDays: 3 },
+            "TN":   { name: "Tennessee National", primary: "#3F873F", secondary: "#76BC21", logo: "TN-clr.png", socialListId: null, gapThresholdDays: 3 },
+            "VER":  { name: "Verandah Golf Club", primary: "#7C8956", secondary: "#D77F37", logo: "Verandah-Logo-Green.png", socialListId: null, gapThresholdDays: 3 },
+            "VRC":  { name: "Venetian River Club", primary: "#650841", secondary: "#C7892B", logo: "Venetian_River_Club-clr.png", socialListId: null, gapThresholdDays: 4 }
+        };
+
+        function requireAuth() {
+            if (!sessionStorage.getItem('hgSocialAdmin')) {
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
+
+        function logout() {
+            sessionStorage.removeItem('hgSocialAdmin');
+            window.location.href = 'index.html';
+        }
+
+        function getThresholds() {
+            try {
+                const stored = JSON.parse(localStorage.getItem('hgGapThresholds') || '{}');
+                const merged = {};
+                Object.keys(CLUBS).forEach(code => {
+                    merged[code] = stored[code] ?? CLUBS[code].gapThresholdDays;
+                });
+                return merged;
+            } catch (e) {
+                const fallback = {};
+                Object.keys(CLUBS).forEach(code => fallback[code] = CLUBS[code].gapThresholdDays);
+                return fallback;
+            }
+        }
+
+        let clubData = {};
+        let usedMock = false;
+        let currentFilter = 'all';
+
+        function daysBetween(a, b) {
+            return Math.round((b - a) / 86400000);
+        }
+
+        function computeStatus(code, posts) {
+            const threshold = getThresholds()[code];
+            const today = new Date(); today.setHours(0,0,0,0);
+
+            if (!posts || posts.length === 0) {
+                return { status: 'unknown', lastPost: null, nextPost: null, daysSince: null };
+            }
+
+            const dates = posts.map(p => new Date(p.date + 'T00:00:00')).sort((a,b) => a - b);
+            const past = dates.filter(d => d <= today);
+            const future = dates.filter(d => d > today);
+
+            const lastPost = past.length ? past[past.length - 1] : null;
+            const nextPost = future.length ? future[0] : null;
+            const daysSince = lastPost ? daysBetween(lastPost, today) : null;
+
+            let status = 'ok';
+            if (daysSince === null || daysSince >= threshold) {
+                status = 'gap';
+            } else if (daysSince >= threshold - 1) {
+                status = 'watch';
+            }
+            // Also flag if the *next* scheduled post is further out than the threshold from today
+            if (status === 'ok' && nextPost && daysBetween(today, nextPost) > threshold) {
+                status = 'watch';
+            }
+
+            return { status, lastPost, nextPost, daysSince };
+        }
+
+        function buildSparkline(posts) {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const days = [];
+            for (let i = 13; i >= 0; i--) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                days.push(d);
+            }
+            const postDateSet = new Set((posts || []).map(p => p.date));
+            return days.map(d => {
+                const key = d.toISOString().slice(0, 10);
+                return postDateSet.has(key);
+            });
+        }
+
+        function formatDate(d) {
+            if (!d) return '—';
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('sidebarList');
+            list.innerHTML = Object.entries(CLUBS).map(([code, club]) => {
+                const info = computeStatus(code, (clubData[code] || {}).posts);
+                return `
+                    <a class="sidebar-club" href="calendar.html?club=${encodeURIComponent(code)}" data-name="${club.name.toLowerCase()}">
+                        <img src="assets/logos/${club.logo}" alt="">
+                        <span class="sidebar-club-name">${club.name}</span>
+                        <span class="status-chip ${info.status}"></span>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function renderStats() {
+            const counts = { ok: 0, watch: 0, gap: 0, unknown: 0 };
+            Object.entries(CLUBS).forEach(([code]) => {
+                const info = computeStatus(code, (clubData[code] || {}).posts);
+                counts[info.status]++;
+            });
+            const row = document.getElementById('statsRow');
+            row.innerHTML = `
+                <div class="stat-tile"><div class="num">${Object.keys(CLUBS).length}</div><div class="lbl">Properties</div></div>
+                <div class="stat-tile ok"><div class="num">${counts.ok}</div><div class="lbl">On Track</div></div>
+                <div class="stat-tile watch"><div class="num">${counts.watch}</div><div class="lbl">Watch</div></div>
+                <div class="stat-tile gap"><div class="num">${counts.gap}</div><div class="lbl">Gap Detected</div></div>
+            `;
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('propertiesGrid');
+            const threshold = getThresholds();
+            const entries = Object.entries(CLUBS).filter(([code, club]) => {
+                if (currentFilter === 'all') return true;
+                const info = computeStatus(code, (clubData[code] || {}).posts);
+                return info.status === currentFilter;
+            });
+
+            if (entries.length === 0) {
+                grid.innerHTML = `<div class="loading-state"><p>No properties match this filter.</p></div>`;
+                return;
+            }
+
+            grid.innerHTML = entries.map(([code, club]) => {
+                const posts = (clubData[code] || {}).posts || [];
+                const info = computeStatus(code, posts);
+                const spark = buildSparkline(posts);
+                const gapLabel = info.status === 'gap'
+                    ? (info.daysSince === null ? 'No posts found' : `${info.daysSince}d since last post`)
+                    : info.status === 'watch' ? 'Approaching gap' : 'On track';
+
+                return `
+                    <a class="property-card status-${info.status}" href="calendar.html?club=${encodeURIComponent(code)}" style="--club-primary: ${club.primary}; --pc-color: ${club.primary}">
+                        <div class="property-card-top">
+                            <img src="assets/logos/${club.logo}" alt="">
+                            <div class="property-card-name">
+                                <div class="title">${club.name}</div>
+                                <div class="code">${code} · Gap limit ${threshold[code]}d</div>
+                            </div>
+                        </div>
+                        <span class="status-pill ${info.status}">
+                            ${info.status === 'gap' ? '⚠ Gap Detected' : info.status === 'watch' ? '◑ Watch' : info.status === 'ok' ? '✓ On Track' : '– No Data'}
+                        </span>
+                        <div class="sparkline">
+                            ${spark.map(has => `<div class="spark-bar ${has ? 'has-post' : ''}" style="height:${has ? 100 : 30}%"></div>`).join('')}
+                        </div>
+                        <div class="property-meta">
+                            <span>Last post: <strong>${formatDate(info.lastPost)}</strong></span>
+                            <span>${gapLabel}</span>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function renderAll() {
+            renderSidebar();
+            renderStats();
+            renderGrid();
+        }
+
+        document.getElementById('filterTabs').addEventListener('click', (e) => {
+            const btn = e.target.closest('.filter-tab');
+            if (!btn) return;
+            document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.filter;
+            renderGrid();
+        });
+
+        document.getElementById('sidebarSearch').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase().trim();
+            document.querySelectorAll('.sidebar-club').forEach(el => {
+                el.style.display = el.dataset.name.includes(q) ? 'flex' : 'none';
+            });
+        });
+
+        async function loadData() {
+            try {
+                const response = await fetch('/.netlify/functions/social-data?club=ALL');
+                const data = await response.json();
+                clubData = data.clubs || {};
+                usedMock = Object.values(clubData).some(c => c.source === 'mock');
+                document.getElementById('mockBanner').classList.toggle('show', usedMock);
+                document.getElementById('syncPill').innerHTML = usedMock
+                    ? '<span class="sync-dot"></span>Sample data'
+                    : '<span class="sync-dot"></span>Live from Trello';
+                renderAll();
+            } catch (error) {
+                console.error('Error loading social data:', error);
+                document.getElementById('propertiesGrid').innerHTML = `
+                    <div class="loading-state"><p>Failed to load social schedule data. Please try again.</p></div>
+                `;
+            }
+        }
+
+        function refreshData() {
+            document.getElementById('propertiesGrid').innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Refreshing...</p></div>`;
+            loadData();
+        }
+
+        // ── Settings modal ──
+        function openSettings() {
+            const thresholds = getThresholds();
+            const list = document.getElementById('thresholdList');
+            list.innerHTML = Object.entries(CLUBS).map(([code, club]) => `
+                <div class="threshold-row">
+                    <img src="assets/logos/${club.logo}" alt="">
+                    <span class="tname">${club.name}</span>
+                    <input type="number" min="1" max="30" value="${thresholds[code]}" data-code="${code}">
+                    <span class="days-lbl">days</span>
+                </div>
+            `).join('');
+            document.getElementById('settingsModal').classList.add('show');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('show');
+        }
+
+        function saveThresholds() {
+            const inputs = document.querySelectorAll('#thresholdList input');
+            const stored = {};
+            inputs.forEach(input => {
+                const val = parseInt(input.value, 10);
+                stored[input.dataset.code] = isNaN(val) || val < 1 ? CLUBS[input.dataset.code].gapThresholdDays : val;
+            });
+            localStorage.setItem('hgGapThresholds', JSON.stringify(stored));
+            closeSettings();
+            renderAll();
+        }
+
+        document.getElementById('settingsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'settingsModal') closeSettings();
+        });
+
+        if (requireAuth()) {
+            renderSidebar();
+            loadData();
+        }
+    </script>
+</body>
+</html>

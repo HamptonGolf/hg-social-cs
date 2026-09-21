@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Command Center Login</title>
+    <link rel="icon" type="image/png" href="assets/logos/HG_DoorElement_CMYK.png">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar-track { background: #05070a; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #00B451, #006600); border-radius: 6px; border: 2px solid #05070a; }
+        ::-webkit-scrollbar-thumb:hover { background: #00B451; }
+        * { scrollbar-color: #00B451 #05070a; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow-x: hidden;
+            background: #05070a;
+            color: white;
+        }
+
+        /* Distinct "command center" backdrop: dark grid + scanning accent line, not the
+           green radial-glow look used on the project dashboard. */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(180deg, #070a0f 0%, #05070a 60%, #040507 100%);
+            z-index: -3;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 180, 81, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 180, 81, 0.06) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 80%);
+            z-index: -2;
+        }
+
+        .scan-line {
+            position: fixed;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0, 180, 81, 0.7), transparent);
+            box-shadow: 0 0 20px 4px rgba(0, 180, 81, 0.4);
+            animation: scanMove 6s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes scanMove {
+            0%, 100% { top: 8%; opacity: 0; }
+            10% { opacity: 1; }
+            50% { top: 92%; opacity: 1; }
+            90% { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.75; transform: scale(1.08); }
+        }
+
+        .login-container {
+            background: linear-gradient(135deg, #00B451 0%, #006600 100%);
+            border-radius: 24px;
+            padding: 2px;
+            max-width: 460px;
+            width: 100%;
+            animation: fadeInUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 0 80px rgba(0, 180, 81, 0.15);
+        }
+
+        .login-form-wrapper {
+            background: #0c0f14;
+            border-radius: 22px;
+            padding: 3.25rem 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .badge-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.75rem;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 180, 81, 0.1);
+            border: 1px solid rgba(0, 180, 81, 0.35);
+            color: #4ade80;
+            font-size: 0.688rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.4rem 0.9rem;
+            border-radius: 999px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.8);
+            animation: pulse 2s infinite;
+        }
+
+        .logo-wrapper {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 1.5rem;
+            border-radius: 20px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo-icon {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .company-name {
+            font-size: 1.75rem;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 0.4rem;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            margin-bottom: 0.65rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        input {
+            width: 100%;
+            padding: 1.05rem 1.25rem;
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.03);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+        }
+
+        input::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+        input:focus {
+            outline: none;
+            border-color: #00B451;
+            background: rgba(0, 180, 81, 0.05);
+            box-shadow: 0 0 0 4px rgba(0, 180, 81, 0.12);
+        }
+
+        .password-toggle { position: relative; }
+
+        .toggle-icon {
+            position: absolute;
+            right: 1.15rem;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            opacity: 0.4;
+            transition: all 0.3s ease;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-icon:hover { opacity: 0.8; }
+        .toggle-icon svg { width: 18px; height: 18px; stroke: white; stroke-width: 2; fill: none; }
+
+        .login-button {
+            width: 100%;
+            padding: 1.15rem;
+            background: linear-gradient(135deg, #00B451 0%, #006600 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.938rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 8px 24px rgba(0, 180, 81, 0.25);
+            margin-top: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-button::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .login-button:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0, 180, 81, 0.4); }
+        .login-button:hover::before { left: 100%; }
+        .login-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .error-message {
+            background: rgba(235, 90, 70, 0.1);
+            border: 1.5px solid rgba(235, 90, 70, 0.35);
+            color: #ff8a7a;
+            padding: 1rem 1.125rem;
+            border-radius: 12px;
+            margin-top: 1.25rem;
+            display: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .error-message.show { display: block; animation: fadeInUp 0.3s ease-out; }
+
+        .helper-text {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.813rem;
+            margin-top: 2.25rem;
+            padding-top: 2.25rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-weight: 500;
+        }
+
+        .helper-link {
+            color: #00B451;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .helper-link:hover { color: #4ade80; }
+
+        @media (max-width: 600px) {
+            .login-form-wrapper { padding: 2.5rem 1.75rem; }
+            .company-name { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="scan-line"></div>
+
+    <div class="login-container">
+        <div class="login-form-wrapper">
+            <div class="badge-row">
+                <span class="badge"><span class="badge-dot"></span>Admin Access</span>
+            </div>
+
+            <div class="logo-section">
+                <div class="logo-wrapper">
+                    <img src="assets/logos/HG_DoorElement_CMYK.png" alt="Hampton Golf" class="logo-icon">
+                </div>
+                <h1 class="company-name">Social Command Center</h1>
+                <p class="subtitle">Hampton Golf · Content Scheduling</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="your.name" autocomplete="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="accessCode">Password</label>
+                    <div class="password-toggle">
+                        <input type="password" id="accessCode" placeholder="••••••••" autocomplete="current-password" required>
+                        <span class="toggle-icon" onclick="togglePassword()">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-button">Enter Command Center</button>
+
+                <div class="error-message" id="errorMessage">Invalid username or password.</div>
+            </form>
+
+            <div class="helper-text">
+                Access issues? Contact <a href="mailto:marketing@hampton.golf" class="helper-link">marketing@hampton.golf</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const toggleIcon = document.querySelector('.toggle-icon');
+        const eyeOpenSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>';
+        const eyeClosedSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>';
+
+        function togglePassword() {
+            const input = document.getElementById('accessCode');
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggleIcon.innerHTML = eyeClosedSVG;
+            } else {
+                input.type = 'password';
+                toggleIcon.innerHTML = eyeOpenSVG;
+            }
+        }
+
+        const loginForm = document.getElementById('loginForm');
+        const username = document.getElementById('username');
+        const accessCode = document.getElementById('accessCode');
+        const errorMessage = document.getElementById('errorMessage');
+        const loginButton = document.querySelector('.login-button');
+
+        loginForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            loginButton.disabled = true;
+            loginButton.textContent = 'Authenticating...';
+
+            try {
+                const response = await fetch('/.netlify/functions/social-auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: username.value.trim(),
+                        password: accessCode.value
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    sessionStorage.setItem('hgSocialAdmin', JSON.stringify({
+                        username: username.value.trim(),
+                        loggedInAt: Date.now()
+                    }));
+                    window.location.href = 'overview.html';
+                } else {
+                    errorMessage.textContent = result.error || 'Invalid username or password.';
+                    errorMessage.classList.add('show');
+                    loginButton.disabled = false;
+                    loginButton.textContent = 'Enter Command Center';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMessage.textContent = 'Connection error. Please try again.';
+                errorMessage.classList.add('show');
+                loginButton.disabled = false;
+                loginButton.textContent = 'Enter Command Center';
+            }
+        });
+
+        [username, accessCode].forEach(el => el.addEventListener('input', () => errorMessage.classList.remove('show')));
+    </script>
+</body>
+</html>

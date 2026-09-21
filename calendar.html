@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Calendar - Hampton Golf</title>
+    <link rel="icon" type="image/png" href="assets/logos/HG_DoorElement_CMYK.png">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #05070a; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--club-primary, #00B451), var(--club-secondary, #006600)); border-radius: 6px; border: 2px solid #05070a; }
+        * { scrollbar-color: var(--club-primary, #00B451) #05070a; }
+
+        html, body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #05070a;
+            color: white;
+            min-height: 100vh;
+        }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes gapGlow {
+            0%, 100% { box-shadow: inset 0 0 0 1.5px rgba(248, 113, 113, 0.55), 0 0 0 rgba(248,113,113,0); }
+            50% { box-shadow: inset 0 0 0 1.5px rgba(248, 113, 113, 0.9), 0 0 18px rgba(248,113,113,0.25); }
+        }
+
+        .app-shell { display: flex; min-height: 100vh; }
+
+        /* ── Sidebar (compact club switcher) ── */
+        .sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            background: #0a0d12;
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem 1.5rem 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            font-size: 0.813rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .back-link:hover { color: white; }
+
+        .club-identity {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .club-identity img {
+            width: 46px; height: 46px;
+            background: white;
+            border-radius: 10px;
+            padding: 6px;
+            object-fit: contain;
+        }
+
+        .club-identity .cname { font-size: 0.938rem; font-weight: 800; line-height: 1.25; }
+        .club-identity .ccode { font-size: 0.688rem; color: rgba(255,255,255,0.4); font-family: 'JetBrains Mono', monospace; }
+
+        .sidebar-search { padding: 0.9rem 1rem 0.6rem; }
+        .sidebar-search input {
+            width: 100%; padding: 0.65rem 0.85rem;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 9px; color: white; font-size: 0.8rem; font-family: 'Inter', sans-serif;
+        }
+        .sidebar-search input:focus { outline: none; border-color: var(--club-primary, #00B451); }
+        .sidebar-search input::placeholder { color: rgba(255,255,255,0.3); }
+
+        .sidebar-list { flex: 1; overflow-y: auto; padding: 0.25rem 0.75rem 1rem; }
+
+        .sidebar-club {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.5rem 0.55rem; border-radius: 8px;
+            text-decoration: none; color: rgba(255,255,255,0.75);
+            font-size: 0.78rem; font-weight: 600; margin-bottom: 2px;
+            transition: background 0.15s ease;
+        }
+        .sidebar-club:hover { background: rgba(255,255,255,0.05); }
+        .sidebar-club.active { background: rgba(0,180,81,0.12); color: white; }
+        .sidebar-club img { width: 20px; height: 20px; background: white; border-radius: 5px; padding: 2px; object-fit: contain; }
+        .sidebar-club-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .status-chip { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .status-chip.ok { background: #4ade80; }
+        .status-chip.watch { background: #fbbf24; }
+        .status-chip.gap { background: #f87171; animation: pulse 1.6s infinite; }
+        .status-chip.unknown { background: rgba(255,255,255,0.2); }
+
+        /* ── Main ── */
+        .main { flex: 1; min-width: 0; padding: 2rem 2.5rem 3rem; }
+
+        .main-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .main-header h1 { font-size: 1.75rem; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 0.3rem; }
+        .main-header p { color: rgba(255,255,255,0.45); font-size: 0.9rem; font-weight: 500; }
+
+        .header-actions { display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; }
+
+        .icon-btn {
+            display: flex; align-items: center; gap: 0.45rem;
+            padding: 0.65rem 1rem; background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+            color: white; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+            transition: all 0.2s ease; font-family: 'Inter', sans-serif;
+        }
+        .icon-btn:hover { background: rgba(255,255,255,0.09); border-color: var(--club-primary, #00B451); }
+
+        .threshold-pill {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.6rem 0.9rem; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+            font-size: 0.78rem; font-weight: 700; color: rgba(255,255,255,0.7);
+        }
+        .threshold-pill input {
+            width: 40px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px; color: white; text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; padding: 0.25rem;
+        }
+
+        /* Stat strip */
+        .stat-strip {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.9rem; margin-bottom: 1.75rem;
+            animation: fadeInUp 0.5s ease 0.05s both;
+        }
+        .stat-mini {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 1rem 1.2rem;
+        }
+        .stat-mini .num { font-size: 1.5rem; font-weight: 900; margin-bottom: 0.2rem; letter-spacing: -0.02em; }
+        .stat-mini .lbl { font-size: 0.688rem; font-weight: 700; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-mini.gap .num { color: #f87171; }
+        .stat-mini.ok .num { color: #4ade80; }
+
+        /* Layout: calendar + side panel */
+        .content-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            gap: 1.5rem;
+            animation: fadeInUp 0.5s ease 0.1s both;
+        }
+
+        .calendar-card {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 1.5rem;
+        }
+
+        .cal-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .cal-nav-btn {
+            width: 36px; height: 36px; border-radius: 9px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: white; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .cal-nav-btn:hover { background: var(--club-primary, #00B451); border-color: var(--club-primary, #00B451); }
+
+        .cal-month-label { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; }
+
+        .cal-today-btn {
+            font-size: 0.72rem; font-weight: 700; color: rgba(255,255,255,0.5);
+            background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 7px;
+            padding: 0.35rem 0.7rem; cursor: pointer; margin-left: 0.75rem;
+        }
+        .cal-today-btn:hover { color: white; border-color: var(--club-primary, #00B451); }
+
+        .weekday-row {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            gap: 6px; margin-bottom: 6px;
+        }
+        .weekday-row div {
+            text-align: center; font-size: 0.68rem; font-weight: 700;
+            color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.06em;
+            padding-bottom: 0.4rem;
+        }
+
+        .day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+
+        .day-cell {
+            aspect-ratio: 1 / 0.85;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 0.4rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            cursor: default;
+        }
+
+        .day-cell.outside { opacity: 0.25; }
+        .day-cell.is-today { border-color: var(--club-primary, #00B451); box-shadow: inset 0 0 0 1.5px var(--club-primary, #00B451); }
+        .day-cell.is-gap { animation: gapGlow 2.4s ease-in-out infinite; background: rgba(248, 113, 113, 0.05); }
+
+        .day-num { font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.55); }
+        .day-cell.is-today .day-num { color: var(--club-primary, #4ade80); }
+        .day-cell.is-gap .day-num { color: #f87171; }
+
+        .day-posts { flex: 1; display: flex; flex-direction: column; gap: 2px; margin-top: 3px; overflow: hidden; }
+
+        .post-chip {
+            font-size: 0.6rem; font-weight: 700; padding: 1px 5px;
+            border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: #05070a;
+        }
+
+        .gap-flag {
+            position: absolute; top: 4px; right: 4px;
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #f87171; box-shadow: 0 0 6px rgba(248,113,113,0.8);
+        }
+
+        /* Side panel */
+        .side-panel {
+            display: flex; flex-direction: column; gap: 1.25rem;
+        }
+
+        .panel-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            padding: 1.25rem 1.4rem;
+        }
+
+        .panel-card h3 {
+            font-size: 0.78rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.05em; color: rgba(255,255,255,0.55); margin-bottom: 0.9rem;
+        }
+
+        .upcoming-item {
+            display: flex; align-items: center; gap: 0.7rem;
+            padding: 0.55rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.8rem;
+        }
+        .upcoming-item:last-child { border-bottom: none; }
+
+        .upcoming-date {
+            font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.72rem;
+            color: rgba(255,255,255,0.5); width: 46px; flex-shrink: 0;
+        }
+        .upcoming-platform {
+            font-size: 0.62rem; font-weight: 800; padding: 2px 7px; border-radius: 5px;
+            color: #05070a; flex-shrink: 0;
+        }
+        .upcoming-label { flex: 1; color: rgba(255,255,255,0.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .gap-range {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.6rem 0.7rem; border-radius: 10px;
+            background: rgba(248, 113, 113, 0.08); border: 1px solid rgba(248, 113, 113, 0.25);
+            margin-bottom: 0.6rem; font-size: 0.78rem;
+        }
+        .gap-range:last-child { margin-bottom: 0; }
+        .gap-range-icon { font-size: 1rem; }
+        .gap-range-text strong { color: #f87171; }
+
+        .empty-note { color: rgba(255,255,255,0.35); font-size: 0.8rem; padding: 0.5rem 0; }
+
+        .legend { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: rgba(255,255,255,0.6); }
+        .legend-swatch { width: 10px; height: 10px; border-radius: 3px; }
+
+        .flagged-card-item {
+            font-size: 0.75rem; color: rgba(255,255,255,0.6);
+            padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+            line-height: 1.4;
+        }
+        .flagged-card-item:last-child { border-bottom: none; }
+        .flagged-card-item a { color: #fbbf24; text-decoration: none; font-weight: 700; }
+
+        .loading-inline { text-align: center; padding: 3rem 0; }
+        .spinner { width: 44px; height: 44px; border: 4px solid rgba(255,255,255,0.08); border-top-color: var(--club-primary, #00B451); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto 1rem; }
+
+        @media (max-width: 1100px) {
+            .content-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .main { padding: 1.5rem 1.25rem 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="overview.html" class="back-link">← All Properties</a>
+                <div class="club-identity">
+                    <img id="sidebarLogo" src="" alt="">
+                    <div>
+                        <div class="cname" id="sidebarClubName">Loading...</div>
+                        <div class="ccode" id="sidebarClubCode"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-search"><input type="text" id="sidebarSearch" placeholder="Switch property..."></div>
+            <div class="sidebar-list" id="sidebarList"></div>
+        </aside>
+
+        <main class="main">
+            <div class="main-header">
+                <div>
+                    <h1 id="pageTitle">Social Calendar</h1>
+                    <p>Scheduled posts pulled from Trello campaign cards</p>
+                </div>
+                <div class="header-actions">
+                    <span class="threshold-pill">
+                        Gap limit
+                        <input type="number" id="thresholdInput" min="1" max="30" value="3">
+                        days
+                    </span>
+                    <button class="icon-btn" onclick="loadClub()">↻ Refresh</button>
+                </div>
+            </div>
+
+            <div class="stat-strip" id="statStrip"></div>
+
+            <div class="content-grid">
+                <div class="calendar-card">
+                    <div class="cal-nav">
+                        <div style="display:flex; align-items:center;">
+                            <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+                            <span class="cal-month-label" id="monthLabel" style="margin: 0 0.9rem;">—</span>
+                            <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+                            <button class="cal-today-btn" onclick="goToday()">Today</button>
+                        </div>
+                    </div>
+                    <div class="weekday-row">
+                        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                    </div>
+                    <div class="day-grid" id="dayGrid">
+                        <div class="loading-inline"><div class="spinner"></div></div>
+                    </div>
+                    <div class="legend" style="margin-top: 1.25rem;">
+                        <div class="legend-item"><span class="legend-swatch" style="background:#4ade80"></span>Instagram</div>
+                        <div class="legend-item"><span class="legend-swatch" style="background:#3b82f6"></span>Facebook</div>
+                        <div class="legend-item"><span class="legend-swatch" style="background:#e879f9"></span>TikTok</div>
+                        <div class="legend-item"><span class="legend-swatch" style="background:#38bdf8"></span>LinkedIn</div>
+                        <div class="legend-item"><span class="legend-swatch" style="background:#fb923c"></span>Other</div>
+                        <div class="legend-item"><span class="legend-swatch" style="background:#f87171"></span>Gap flagged</div>
+                    </div>
+                </div>
+
+                <div class="side-panel">
+                    <div class="panel-card">
+                        <h3>Flagged Gap Ranges</h3>
+                        <div id="gapRangesList"><p class="empty-note">Loading...</p></div>
+                    </div>
+
+                    <div class="panel-card">
+                        <h3>Upcoming Posts</h3>
+                        <div id="upcomingList"><p class="empty-note">Loading...</p></div>
+                    </div>
+
+                    <div class="panel-card" id="flaggedCardsPanel" style="display:none;">
+                        <h3>⚠ Needs Attention</h3>
+                        <div id="flaggedCardsList"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const CLUBS = {
+            "AC":   { name: "Astor Creek Golf & Country Club", primary: "#2B5265", logo: "AC_Blue (2).png", gapThresholdDays: 2 },
+            "BS":   { name: "Blue Sky Golf Club", primary: "#3A8DDE", secondary: "#808284", logo: "BS_Logo_clr.png", gapThresholdDays: 3 },
+            "DCC":  { name: "Deerwood Country Club", primary: "#6BA66C", secondary: "#000000", logo: "logo-clr.png", gapThresholdDays: 3 },
+            "ECHO": { name: "Echo Hills Golf Course", primary: "#002A3A", logo: "ECHO-Logo-blk.png", gapThresholdDays: 4 },
+            "EH":   { name: "Eagle Harbor Golf Club", primary: "#008A5E", logo: "Eagle Harbor PMS 3415 vert.png", gapThresholdDays: 3 },
+            "FF":   { name: "Falcon's Fire Golf Club", primary: "#B73330", secondary: "#938055", logo: "FF-logo-clr.png", gapThresholdDays: 3 },
+            "FPP":  { name: "Fort Piqua Plaza", primary: "#A39161", logo: "Fort logo with drop shadow.png", gapThresholdDays: 4 },
+            "GK":   { name: "Glen Kernan Club", primary: "#7B7F80", logo: "GK - LOGO-BLK (1).png", gapThresholdDays: 3 },
+            "GCC":  { name: "Glynlea Country Club", primary: "#15576b", secondary: "#3399cc", logo: "Glynlea Flying Bird - clr.png", gapThresholdDays: 3 },
+            "HCC":  { name: "Hampshire Country Club", primary: "#00483A", logo: "HCC-Logo-clr.png", gapThresholdDays: 3 },
+            "HH":   { name: "Harbor Hills Country Club", primary: "#C29B43", logo: "HH-Logo-clr.png", gapThresholdDays: 3 },
+            "KGGC": { name: "Kings Gate Golf Club", primary: "#788592", secondary: "#475563", logo: "KGGC_logo_VERT_blk.png", gapThresholdDays: 3 },
+            "LO":   { name: "Laurel Oak Country Club", primary: "#C2A06E", logo: "Laurel Oak Logo_gold+blk.png", gapThresholdDays: 3 },
+            "MVC":  { name: "Medalist Village Club", primary: "#0F2544", secondary: "#C38B6D", logo: "MVC-logo.png", gapThresholdDays: 4 },
+            "NCC":  { name: "Northland Country Club", primary: "#40683C", logo: "NCC logo_blue grey.png", gapThresholdDays: 3 },
+            "PR/DWN": { name: "Panther Run Golf Club", primary: "#0082CA", secondary: "#00344C", logo: "PR-Logo-Clr.png", gapThresholdDays: 3 },
+            "PS":   { name: "PipeStone Golf Club", primary: "#653230", secondary: "#5B6670", logo: "PS_logo_clr.png", gapThresholdDays: 3 },
+            "RBCC": { name: "Rarity Bay Golf & Country Club", primary: "#003B5C", secondary: "#6AADE4", logo: "RBCC_logo-removebg-preview (2).png", gapThresholdDays: 4 },
+            "RH":   { name: "River Hall Country Club", primary: "#465967", logo: "RHlogo_color CC.png", gapThresholdDays: 3 },
+            "RMC":  { name: "Roscoe Mountain Club", primary: "#006600", logo: "RMC_PrimaryLogo_Green.png", gapThresholdDays: 3 },
+            "RVCC": { name: "Raritan Valley Country Club", primary: "#2A3561", secondary: "#D1CC8E", logo: "logo-mark.png", gapThresholdDays: 3 },
+            "SW":   { name: "Stillwater Golf & Country Club", primary: "#6FA088", secondary: "#003A70", logo: "SW_Logo-Color (1).png", gapThresholdDays: 3 },
+            "SCGC": { name: "Stone Creek Golf Club", primary: "#845D32", secondary: "#124734", logo: "SC_logo_clr.png", gapThresholdDays: 3 },
+            "STG":  { name: "Stonegate Golf Club", primary: "#546122", secondary: "#D7282F", logo: "StonegateLOGO-clr.png", gapThresholdDays: 3 },
+            "TARA": { name: "Tara Golf and Country Club", primary: "#AD8A57", secondary: "#008F4E", logo: "Tara Logos.png", gapThresholdDays: 3 },
+            "TER":  { name: "Terreno", primary: "#12425E", secondary: "#29A8AB", logo: "Terreno_by_DiVosta_Logo clr.png", gapThresholdDays: 3 },
+            "TN":   { name: "Tennessee National", primary: "#3F873F", secondary: "#76BC21", logo: "TN-clr.png", gapThresholdDays: 3 },
+            "VER":  { name: "Verandah Golf Club", primary: "#7C8956", secondary: "#D77F37", logo: "Verandah-Logo-Green.png", gapThresholdDays: 3 },
+            "VRC":  { name: "Venetian River Club", primary: "#650841", secondary: "#C7892B", logo: "Venetian_River_Club-clr.png", gapThresholdDays: 4 }
+        };
+
+        const PLATFORM_COLORS = {
+            IG: '#4ade80', INSTAGRAM: '#4ade80',
+            FB: '#3b82f6', FACEBOOK: '#3b82f6',
+            TT: '#e879f9', TIKTOK: '#e879f9',
+            LI: '#38bdf8', LINKEDIN: '#38bdf8',
+            X: '#e5e7eb', TWITTER: '#e5e7eb',
+            YT: '#f87171', YOUTUBE: '#f87171'
+        };
+
+        function requireAuth() {
+            if (!sessionStorage.getItem('hgSocialAdmin')) {
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
+
+        function getThresholds() {
+            try {
+                const stored = JSON.parse(localStorage.getItem('hgGapThresholds') || '{}');
+                const merged = {};
+                Object.keys(CLUBS).forEach(code => { merged[code] = stored[code] ?? CLUBS[code].gapThresholdDays; });
+                return merged;
+            } catch (e) {
+                const fallback = {};
+                Object.keys(CLUBS).forEach(code => fallback[code] = CLUBS[code].gapThresholdDays);
+                return fallback;
+            }
+        }
+
+        function saveThreshold(code, val) {
+            const stored = JSON.parse(localStorage.getItem('hgGapThresholds') || '{}');
+            stored[code] = val;
+            localStorage.setItem('hgGapThresholds', JSON.stringify(stored));
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        let currentCode = params.get('club');
+        if (!currentCode || !CLUBS[currentCode]) currentCode = Object.keys(CLUBS)[0];
+
+        let posts = [];
+        let viewDate = new Date();
+        viewDate.setDate(1);
+        let allClubStatus = {}; // for sidebar dots, lazy-loaded
+
+        function applyBranding(code) {
+            const club = CLUBS[code];
+            document.documentElement.style.setProperty('--club-primary', club.primary);
+            document.documentElement.style.setProperty('--club-secondary', club.secondary || club.primary);
+            document.getElementById('sidebarLogo').src = `assets/logos/${club.logo}`;
+            document.getElementById('sidebarClubName').textContent = club.name;
+            document.getElementById('sidebarClubCode').textContent = code;
+            document.getElementById('pageTitle').textContent = club.name + ' — Social Calendar';
+            document.title = club.name + ' Social Calendar - Hampton Golf';
+            document.getElementById('thresholdInput').value = getThresholds()[code];
+        }
+
+        function renderSidebarList() {
+            const list = document.getElementById('sidebarList');
+            list.innerHTML = Object.entries(CLUBS).map(([code, club]) => {
+                const status = allClubStatus[code] || 'unknown';
+                return `
+                    <a class="sidebar-club ${code === currentCode ? 'active' : ''}" href="calendar.html?club=${encodeURIComponent(code)}" data-name="${club.name.toLowerCase()}">
+                        <img src="assets/logos/${club.logo}" alt="">
+                        <span class="sidebar-club-name">${club.name}</span>
+                        <span class="status-chip ${status}"></span>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('sidebarSearch').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase().trim();
+            document.querySelectorAll('.sidebar-club').forEach(el => {
+                el.style.display = el.dataset.name.includes(q) ? 'flex' : 'none';
+            });
+        });
+
+        document.getElementById('thresholdInput').addEventListener('change', (e) => {
+            const val = parseInt(e.target.value, 10) || CLUBS[currentCode].gapThresholdDays;
+            saveThreshold(currentCode, val);
+            renderCalendar();
+            renderPanels();
+        });
+
+        function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
+        function dateKey(d) { return d.toISOString().slice(0, 10); }
+        function formatShort(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+
+        // Build a lookup: date -> [posts]
+        function postsByDate() {
+            const map = {};
+            posts.forEach(p => {
+                if (!map[p.date]) map[p.date] = [];
+                map[p.date].push(p);
+            });
+            return map;
+        }
+
+        // Compute contiguous gap ranges across the full known post range (30 days back to 30 days forward from today, or bounded by data)
+        function computeGapRanges() {
+            const threshold = getThresholds()[currentCode];
+            if (posts.length === 0) return [];
+
+            const sortedDates = [...new Set(posts.map(p => p.date))].sort();
+            const today = new Date(); today.setHours(0,0,0,0);
+
+            const rangeStart = new Date(sortedDates[0] + 'T00:00:00');
+            const rangeEndCandidate = new Date(sortedDates[sortedDates.length - 1] + 'T00:00:00');
+            const rangeEnd = rangeEndCandidate > today ? rangeEndCandidate : today;
+
+            const postSet = new Set(sortedDates);
+            const ranges = [];
+            let gapStart = null;
+            let lastPostBefore = rangeStart;
+
+            for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + 1)) {
+                const key = dateKey(d);
+                if (postSet.has(key)) {
+                    lastPostBefore = new Date(d);
+                    if (gapStart) {
+                        // gap ends the day before a post if it met threshold
+                        gapStart = null;
+                    }
+                } else {
+                    const since = daysBetween(lastPostBefore, d);
+                    if (since >= threshold) {
+                        if (!gapStart) gapStart = new Date(d);
+                    }
+                }
+            }
+            // Second pass to build actual contiguous ranges of flagged days
+            let flaggedDays = [];
+            lastPostBefore = rangeStart;
+            for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + 1)) {
+                const key = dateKey(d);
+                if (postSet.has(key)) {
+                    lastPostBefore = new Date(d);
+                    continue;
+                }
+                const since = daysBetween(lastPostBefore, d);
+                if (since >= threshold) flaggedDays.push(new Date(d));
+            }
+
+            if (flaggedDays.length === 0) return [];
+
+            let rStart = flaggedDays[0], rPrev = flaggedDays[0];
+            for (let i = 1; i <= flaggedDays.length; i++) {
+                const cur = flaggedDays[i];
+                if (cur && daysBetween(rPrev, cur) === 1) {
+                    rPrev = cur;
+                } else {
+                    ranges.push({ start: rStart, end: rPrev });
+                    if (cur) { rStart = cur; rPrev = cur; }
+                }
+            }
+            return ranges;
+        }
+
+        function isGapDay(d, byDateMap) {
+            const threshold = getThresholds()[currentCode];
+            const key = dateKey(d);
+            if (byDateMap[key]) return false;
+            // find most recent post on/before d
+            const sortedDates = [...new Set(posts.map(p => p.date))].sort();
+            let lastPost = null;
+            for (const ds of sortedDates) {
+                const pd = new Date(ds + 'T00:00:00');
+                if (pd <= d) lastPost = pd; else break;
+            }
+            if (!lastPost) return sortedDates.length > 0; // before any posts ever existed in data - not flagged
+            return daysBetween(lastPost, d) >= threshold;
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('dayGrid');
+            const byDate = postsByDate();
+            const year = viewDate.getFullYear();
+            const month = viewDate.getMonth();
+
+            document.getElementById('monthLabel').textContent = viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            const firstOfMonth = new Date(year, month, 1);
+            const startDay = firstOfMonth.getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date(); today.setHours(0,0,0,0);
+
+            const cells = [];
+            // Leading days from previous month
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            for (let i = startDay - 1; i >= 0; i--) {
+                cells.push({ date: new Date(year, month - 1, prevMonthDays - i), outside: true });
+            }
+            for (let d = 1; d <= daysInMonth; d++) {
+                cells.push({ date: new Date(year, month, d), outside: false });
+            }
+            while (cells.length % 7 !== 0 || cells.length < 42) {
+                const last = cells[cells.length - 1].date;
+                const next = new Date(last); next.setDate(next.getDate() + 1);
+                cells.push({ date: next, outside: true });
+                if (cells.length >= 42) break;
+            }
+
+            grid.innerHTML = cells.map(cell => {
+                const key = dateKey(cell.date);
+                const dayPosts = byDate[key] || [];
+                const isToday = key === dateKey(today);
+                const gap = !cell.outside && isGapDay(cell.date, byDate);
+
+                const chips = dayPosts.slice(0, 3).map(p => {
+                    const color = PLATFORM_COLORS[(p.platform || '').toUpperCase()] || '#fb923c';
+                    return `<div class="post-chip" style="background:${color}" title="${(p.platform || '')} ${(p.type || '')}">${(p.platform || '').toUpperCase()}${p.type ? ' · ' + p.type : ''}</div>`;
+                }).join('');
+                const more = dayPosts.length > 3 ? `<div class="post-chip" style="background:rgba(255,255,255,0.15); color:white;">+${dayPosts.length - 3} more</div>` : '';
+
+                return `
+                    <div class="day-cell ${cell.outside ? 'outside' : ''} ${isToday ? 'is-today' : ''} ${gap ? 'is-gap' : ''}" title="${dayPosts.length ? dayPosts.map(p => `${p.platform || ''} ${p.type || ''} — ${p.cardName || ''}`).join('\\n') : ''}">
+                        <span class="day-num">${cell.date.getDate()}</span>
+                        <div class="day-posts">${chips}${more}</div>
+                        ${gap ? '<span class="gap-flag"></span>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderStatStrip() {
+            const threshold = getThresholds()[currentCode];
+            const today = new Date(); today.setHours(0,0,0,0);
+            const sortedDates = [...new Set(posts.map(p => p.date))].sort();
+            const past = sortedDates.filter(d => new Date(d + 'T00:00:00') <= today);
+            const future = sortedDates.filter(d => new Date(d + 'T00:00:00') > today);
+            const lastPost = past.length ? new Date(past[past.length - 1] + 'T00:00:00') : null;
+            const nextPost = future.length ? new Date(future[0] + 'T00:00:00') : null;
+            const daysSince = lastPost ? daysBetween(lastPost, today) : null;
+            const gapRanges = computeGapRanges();
+
+            document.getElementById('statStrip').innerHTML = `
+                <div class="stat-mini ${daysSince !== null && daysSince >= threshold ? 'gap' : 'ok'}">
+                    <div class="num">${daysSince === null ? '—' : daysSince + 'd'}</div>
+                    <div class="lbl">Since Last Post</div>
+                </div>
+                <div class="stat-mini">
+                    <div class="num">${lastPost ? formatShort(lastPost) : '—'}</div>
+                    <div class="lbl">Last Post</div>
+                </div>
+                <div class="stat-mini">
+                    <div class="num">${nextPost ? formatShort(nextPost) : '—'}</div>
+                    <div class="lbl">Next Post</div>
+                </div>
+                <div class="stat-mini ${gapRanges.length ? 'gap' : 'ok'}">
+                    <div class="num">${gapRanges.length}</div>
+                    <div class="lbl">Flagged Gaps</div>
+                </div>
+                <div class="stat-mini">
+                    <div class="num">${posts.length}</div>
+                    <div class="lbl">Total Scheduled</div>
+                </div>
+            `;
+        }
+
+        function renderPanels() {
+            // Gap ranges
+            const ranges = computeGapRanges();
+            const gapEl = document.getElementById('gapRangesList');
+            if (ranges.length === 0) {
+                gapEl.innerHTML = `<p class="empty-note">No gaps flagged — posting cadence looks healthy.</p>`;
+            } else {
+                gapEl.innerHTML = ranges.map(r => {
+                    const len = daysBetween(r.start, r.end) + 1;
+                    return `
+                        <div class="gap-range">
+                            <span class="gap-range-icon">⚠️</span>
+                            <span class="gap-range-text"><strong>${len}-day gap</strong> · ${formatShort(r.start)}${len > 1 ? ' – ' + formatShort(r.end) : ''}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Upcoming
+            const today = new Date(); today.setHours(0,0,0,0);
+            const upcoming = posts
+                .filter(p => new Date(p.date + 'T00:00:00') >= today)
+                .sort((a, b) => a.date.localeCompare(b.date))
+                .slice(0, 8);
+            const upEl = document.getElementById('upcomingList');
+            if (upcoming.length === 0) {
+                upEl.innerHTML = `<p class="empty-note">No upcoming posts scheduled.</p>`;
+            } else {
+                upEl.innerHTML = upcoming.map(p => {
+                    const color = PLATFORM_COLORS[(p.platform || '').toUpperCase()] || '#fb923c';
+                    return `
+                        <div class="upcoming-item">
+                            <span class="upcoming-date">${formatShort(new Date(p.date + 'T00:00:00'))}</span>
+                            <span class="upcoming-platform" style="background:${color}">${(p.platform || '?').toUpperCase()}</span>
+                            <span class="upcoming-label">${p.type ? p.type + ' — ' : ''}${p.cardName || ''}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function renderFlaggedCards(unparsed) {
+            const panel = document.getElementById('flaggedCardsPanel');
+            const list = document.getElementById('flaggedCardsList');
+            if (!unparsed || unparsed.length === 0) {
+                panel.style.display = 'none';
+                return;
+            }
+            panel.style.display = 'block';
+            list.innerHTML = unparsed.map(u => `
+                <div class="flagged-card-item">
+                    <a href="${u.cardUrl || '#'}" target="_blank" rel="noopener">${u.cardName || 'Untitled card'}</a>
+                    — couldn't parse: "${u.line}"
+                </div>
+            `).join('');
+        }
+
+        function changeMonth(delta) {
+            viewDate.setMonth(viewDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function goToday() {
+            viewDate = new Date(); viewDate.setDate(1);
+            renderCalendar();
+        }
+
+        async function loadClub() {
+            document.getElementById('dayGrid').innerHTML = `<div class="loading-inline"><div class="spinner"></div></div>`;
+            applyBranding(currentCode);
+            renderSidebarList();
+
+            try {
+                const response = await fetch(`/.netlify/functions/social-data?club=${encodeURIComponent(currentCode)}`);
+                const data = await response.json();
+                posts = data.posts || [];
+                renderStatStrip();
+                renderCalendar();
+                renderPanels();
+                renderFlaggedCards(data.unparsed);
+            } catch (error) {
+                console.error('Error loading calendar data:', error);
+                document.getElementById('dayGrid').innerHTML = `<p class="empty-note">Failed to load schedule data.</p>`;
+            }
+        }
+
+        if (requireAuth()) {
+            loadClub();
+        }
+    </script>
+</body>
+</html>
