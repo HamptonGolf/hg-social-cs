@@ -15,7 +15,11 @@
 const { getStore } = require('@netlify/blobs');
 
 function store() {
-  return getStore('hg-social');
+  return getStore({
+    name: 'hg-social',
+    siteID: process.env.SITE_ID,
+    token: process.env.BLOBS_TOKEN
+  });
 }
 
 async function loadAll() {
@@ -91,6 +95,6 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   } catch (error) {
     console.error('manual-posts error:', error);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Failed to process manual post request', debug: error.message, stack: error.stack }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Failed to process manual post request' }) };
   }
 };
