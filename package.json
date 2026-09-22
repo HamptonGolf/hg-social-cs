@@ -1,0 +1,9 @@
+{
+  "name": "hg-social-command-center",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hampton Golf Social Command Center — internal scheduling & gap-monitor tool",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
