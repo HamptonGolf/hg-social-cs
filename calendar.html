@@ -230,8 +230,9 @@
         .post-chip {
             font-size: 0.6rem; font-weight: 700; padding: 1px 5px;
             border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            color: #05070a;
+            color: #05070a; cursor: pointer; transition: filter 0.15s ease, transform 0.15s ease;
         }
+        .post-chip:hover { filter: brightness(1.15); transform: translateY(-1px); }
 
         .gap-flag {
             position: absolute; top: 4px; right: 4px;
@@ -393,8 +394,56 @@
             font-weight: 500;
         }
         .error-message.show { display: block; }
-        .post-chip.manual { position: relative; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
-        .post-chip.manual:hover { filter: brightness(1.15); }
+        .post-chip.manual { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+
+        .lightbox-platform-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #05070a;
+            margin-bottom: 1rem;
+        }
+        .lightbox-field { margin-bottom: 1rem; }
+        .lightbox-field .flabel {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.06em; color: rgba(255,255,255,0.4); margin-bottom: 0.3rem;
+        }
+        .lightbox-field .fvalue { font-size: 0.9rem; color: rgba(255,255,255,0.9); font-weight: 600; }
+        .lightbox-source-note {
+            font-size: 0.78rem; color: rgba(255,255,255,0.45);
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px; padding: 0.75rem 0.9rem; line-height: 1.5;
+        }
+        .lightbox-source-note a { color: #4ade80; font-weight: 700; text-decoration: none; }
+        .btn-danger {
+            background: rgba(235, 90, 70, 0.12);
+            border: 1px solid rgba(235, 90, 70, 0.4);
+            color: #ff8a7a;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.813rem;
+            cursor: pointer;
+        }
+        .btn-danger:hover { background: rgba(235, 90, 70, 0.2); }
+        .day-list-row {
+            display: flex; align-items: center; gap: 0.7rem;
+            padding: 0.65rem 0.5rem; border-radius: 10px; cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .day-list-row:last-child { border-bottom: none; }
+        .day-list-row:hover { background: rgba(255,255,255,0.04); }
+        .day-list-platform {
+            font-size: 0.62rem; font-weight: 800; padding: 3px 8px; border-radius: 6px;
+            color: #05070a; flex-shrink: 0;
+        }
+        .day-list-name { flex: 1; font-size: 0.82rem; color: rgba(255,255,255,0.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         @media (max-width: 1100px) {
             .content-grid { grid-template-columns: 1fr; }
@@ -525,6 +574,59 @@
                 <button class="icon-btn" onclick="closeAddPost()">Cancel</button>
                 <button class="btn-save" onclick="submitAddPost()">Add to Calendar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Post Detail Lightbox -->
+    <div class="modal-overlay" id="postLightbox">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="lightboxTitle">Post Details</h3>
+                <button class="modal-close" onclick="closeLightbox()">&times;</button>
+            </div>
+            <div class="modal-body" id="lightboxViewBody"></div>
+            <div class="modal-body" id="lightboxEditBody" style="display:none;">
+                <div class="form-group">
+                    <label for="editDate">Date</label>
+                    <input type="date" id="editDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="editPlatform">Platform</label>
+                    <select id="editPlatform">
+                        <option value="IG">Instagram</option>
+                        <option value="FB">Facebook</option>
+                        <option value="TT">TikTok</option>
+                        <option value="LI">LinkedIn</option>
+                        <option value="X">Twitter/X</option>
+                        <option value="YT">YouTube</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editType">Type</label>
+                    <input type="text" id="editType" placeholder="Post, Reel, Story, Carousel...">
+                </div>
+                <div class="form-group">
+                    <label for="editTitle">Title / Description</label>
+                    <input type="text" id="editTitle" placeholder="e.g. Fall member appreciation photo dump">
+                </div>
+                <div class="error-message" id="editPostError">Please choose a date and platform.</div>
+            </div>
+            <div class="modal-footer" id="lightboxViewFooter"></div>
+            <div class="modal-footer" id="lightboxEditFooter" style="display:none;">
+                <button class="icon-btn" onclick="cancelEditPost()">Cancel</button>
+                <button class="btn-save" onclick="saveEditPost()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day Post List (for "+N more") -->
+    <div class="modal-overlay" id="dayListModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="dayListTitle">Posts</h3>
+                <button class="modal-close" onclick="closeDayList()">&times;</button>
+            </div>
+            <div class="modal-body" id="dayListBody"></div>
         </div>
     </div>
 
@@ -773,10 +875,9 @@
                 const chips = dayPosts.slice(0, 3).map(p => {
                     const color = PLATFORM_COLORS[(p.platform || '').toUpperCase()] || '#fb923c';
                     const isManual = p.source === 'manual';
-                    const clickAttr = isManual ? `onclick="event.stopPropagation(); confirmDeletePost('${p.id}')"` : '';
-                    return `<div class="post-chip ${isManual ? 'manual' : ''}" style="background:${color}" title="${(p.platform || '')} ${(p.type || '')}${p.cardName ? ' — ' + p.cardName : ''}${isManual ? ' (manual — click to remove)' : ''}" ${clickAttr}>${(p.platform || '').toUpperCase()}${p.type ? ' · ' + p.type : ''}</div>`;
+                    return `<div class="post-chip ${isManual ? 'manual' : ''}" style="background:${color}" title="${(p.platform || '')} ${(p.type || '')}${p.cardName ? ' — ' + p.cardName : ''}${isManual ? ' (manual post)' : ' (from Trello)'}" onclick="event.stopPropagation(); openPostLightbox(${p._uid})">${(p.platform || '').toUpperCase()}${p.type ? ' · ' + p.type : ''}</div>`;
                 }).join('');
-                const more = dayPosts.length > 3 ? `<div class="post-chip" style="background:rgba(255,255,255,0.15); color:white;">+${dayPosts.length - 3} more</div>` : '';
+                const more = dayPosts.length > 3 ? `<div class="post-chip" style="background:rgba(255,255,255,0.15); color:white;" onclick="event.stopPropagation(); openDayList('${key}')">+${dayPosts.length - 3} more</div>` : '';
 
                 return `
                     <div class="day-cell ${cell.outside ? 'outside' : ''} ${isToday ? 'is-today' : ''} ${gap ? 'is-gap' : ''}" title="${dayPosts.length ? dayPosts.map(p => `${p.platform || ''} ${p.type || ''} — ${p.cardName || ''}`).join('\\n') : ''}">
@@ -906,7 +1007,7 @@
                 const trelloPosts = (data.posts || []).map(p => ({ ...p, source: 'trello' }));
                 const manualPosts = manualData.posts || [];
 
-                posts = trelloPosts.concat(manualPosts);
+                posts = trelloPosts.concat(manualPosts).map((p, i) => ({ ...p, _uid: i }));
                 renderStatStrip();
                 renderCalendar();
                 renderPanels();
@@ -960,12 +1061,7 @@
             }
         }
 
-        function confirmDeletePost(id) {
-            if (!confirm('Remove this manually-added post from the calendar?')) return;
-            deletePost(id);
-        }
-
-        async function deletePost(id) {
+        async function deletePostById(id) {
             try {
                 const response = await fetch('/.netlify/functions/manual-posts', {
                     method: 'DELETE',
@@ -973,12 +1069,158 @@
                     body: JSON.stringify({ club: currentCode, id })
                 });
                 if (!response.ok) throw new Error('Request failed');
-                await loadClub();
+                return true;
             } catch (error) {
                 console.error('Error deleting manual post:', error);
                 alert('Could not remove that post. Please try again.');
+                return false;
             }
         }
+
+        // ── Post Detail Lightbox ──
+        let currentLightboxPost = null;
+
+        function openPostLightbox(uid) {
+            const post = posts.find(p => p._uid === uid);
+            if (!post) return;
+            currentLightboxPost = post;
+            renderLightboxView(post);
+            document.getElementById('lightboxEditBody').style.display = 'none';
+            document.getElementById('lightboxEditFooter').style.display = 'none';
+            document.getElementById('lightboxViewBody').style.display = 'block';
+            document.getElementById('lightboxViewFooter').style.display = 'flex';
+            document.getElementById('postLightbox').classList.add('show');
+        }
+
+        function renderLightboxView(post) {
+            const color = PLATFORM_COLORS[(post.platform || '').toUpperCase()] || '#fb923c';
+            const isManual = post.source === 'manual';
+            const dateLabel = new Date(post.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+            document.getElementById('lightboxTitle').textContent = post.cardName || 'Post Details';
+            document.getElementById('lightboxViewBody').innerHTML = `
+                <span class="lightbox-platform-badge" style="background:${color}">${(post.platform || '').toUpperCase()}${post.type ? ' · ' + post.type : ''}</span>
+                <div class="lightbox-field">
+                    <div class="flabel">Date</div>
+                    <div class="fvalue">${dateLabel}</div>
+                </div>
+                <div class="lightbox-field">
+                    <div class="flabel">Title / Description</div>
+                    <div class="fvalue">${post.cardName || '—'}</div>
+                </div>
+                ${isManual ? `
+                    <div class="lightbox-source-note">Manually added — not tied to a Trello card.</div>
+                ` : `
+                    <div class="lightbox-source-note">Sourced from Trello.${post.cardUrl ? ` <a href="${post.cardUrl}" target="_blank" rel="noopener">Open card →</a>` : ''} Edit or reschedule it from the Trello card itself.</div>
+                `}
+            `;
+
+            document.getElementById('lightboxViewFooter').innerHTML = isManual ? `
+                <button class="btn-danger" onclick="handleLightboxDelete()">Delete</button>
+                <button class="btn-save" onclick="startEditPost()">Edit</button>
+            ` : `
+                <button class="icon-btn" onclick="closeLightbox()">Close</button>
+            `;
+        }
+
+        function closeLightbox() {
+            document.getElementById('postLightbox').classList.remove('show');
+            currentLightboxPost = null;
+        }
+
+        function startEditPost() {
+            if (!currentLightboxPost) return;
+            document.getElementById('editDate').value = currentLightboxPost.date;
+            document.getElementById('editPlatform').value = currentLightboxPost.platform;
+            document.getElementById('editType').value = currentLightboxPost.type || '';
+            document.getElementById('editTitle').value = currentLightboxPost.cardName || '';
+            document.getElementById('editPostError').classList.remove('show');
+
+            document.getElementById('lightboxViewBody').style.display = 'none';
+            document.getElementById('lightboxViewFooter').style.display = 'none';
+            document.getElementById('lightboxEditBody').style.display = 'block';
+            document.getElementById('lightboxEditFooter').style.display = 'flex';
+        }
+
+        function cancelEditPost() {
+            if (!currentLightboxPost) return;
+            renderLightboxView(currentLightboxPost);
+            document.getElementById('lightboxEditBody').style.display = 'none';
+            document.getElementById('lightboxEditFooter').style.display = 'none';
+            document.getElementById('lightboxViewBody').style.display = 'block';
+            document.getElementById('lightboxViewFooter').style.display = 'flex';
+        }
+
+        async function saveEditPost() {
+            if (!currentLightboxPost) return;
+            const date = document.getElementById('editDate').value;
+            const platform = document.getElementById('editPlatform').value;
+            const type = document.getElementById('editType').value.trim();
+            const cardName = document.getElementById('editTitle').value.trim();
+            const errorEl = document.getElementById('editPostError');
+
+            if (!date || !platform) {
+                errorEl.textContent = 'Please choose a date and platform.';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            try {
+                const response = await fetch('/.netlify/functions/manual-posts', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ club: currentCode, id: currentLightboxPost.id, date, platform, type, cardName })
+                });
+                if (!response.ok) throw new Error('Request failed');
+
+                closeLightbox();
+                await loadClub();
+            } catch (error) {
+                console.error('Error updating manual post:', error);
+                errorEl.textContent = 'Could not save changes. Please try again.';
+                errorEl.classList.add('show');
+            }
+        }
+
+        async function handleLightboxDelete() {
+            if (!currentLightboxPost) return;
+            if (!confirm('Remove this manually-added post from the calendar?')) return;
+            const ok = await deletePostById(currentLightboxPost.id);
+            if (ok) {
+                closeLightbox();
+                await loadClub();
+            }
+        }
+
+        // ── Day Post List (for "+N more") ──
+        function openDayList(key) {
+            const byDate = postsByDate();
+            const dayPosts = byDate[key] || [];
+            const dateLabel = new Date(key + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+            document.getElementById('dayListTitle').textContent = dateLabel;
+            document.getElementById('dayListBody').innerHTML = dayPosts.map(p => {
+                const color = PLATFORM_COLORS[(p.platform || '').toUpperCase()] || '#fb923c';
+                return `
+                    <div class="day-list-row" onclick="closeDayList(); openPostLightbox(${p._uid});">
+                        <span class="day-list-platform" style="background:${color}">${(p.platform || '').toUpperCase()}</span>
+                        <span class="day-list-name">${p.type ? p.type + ' — ' : ''}${p.cardName || 'Untitled'}</span>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('dayListModal').classList.add('show');
+        }
+
+        function closeDayList() {
+            document.getElementById('dayListModal').classList.remove('show');
+        }
+
+        [['addPostModal', closeAddPost], ['postLightbox', closeLightbox], ['dayListModal', closeDayList]].forEach(([id, closeFn]) => {
+            document.getElementById(id).addEventListener('click', (e) => {
+                if (e.target.id === id) closeFn();
+            });
+        });
 
         if (requireAuth()) {
             loadClub();
