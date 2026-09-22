@@ -874,9 +874,23 @@
 
         async function loadData() {
             try {
-                const response = await fetch('/.netlify/functions/social-data?club=ALL');
-                const data = await response.json();
+                const [trelloRes, manualRes] = await Promise.all([
+                    fetch('/.netlify/functions/social-data?club=ALL'),
+                    fetch('/.netlify/functions/manual-posts?club=ALL')
+                ]);
+                const data = await trelloRes.json();
+                const manualData = await manualRes.json();
+                const manualByClub = manualData.clubs || {};
+
                 clubData = data.clubs || {};
+                Object.keys(clubData).forEach(code => {
+                    const manualPosts = manualByClub[code] || [];
+                    clubData[code] = {
+                        ...clubData[code],
+                        posts: (clubData[code].posts || []).concat(manualPosts)
+                    };
+                });
+
                 usedMock = Object.values(clubData).some(c => c.source === 'mock');
                 document.getElementById('syncPill').innerHTML = usedMock
                     ? '<span class="sync-dot"></span>Sample data'
