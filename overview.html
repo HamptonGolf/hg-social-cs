@@ -267,9 +267,17 @@
 
         .stat-tile {
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
             padding: 1.25rem 1.4rem;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: default;
+        }
+
+        .stat-tile:hover {
+            transform: translateY(-3px);
+            border-color: rgba(0, 180, 81, 0.5);
+            box-shadow: 0 12px 32px rgba(0, 180, 81, 0.18);
         }
 
         .stat-tile .num { font-size: 2rem; font-weight: 900; line-height: 1; margin-bottom: 0.4rem; letter-spacing: -0.02em; }
@@ -449,22 +457,6 @@
 
         .loading-state p { color: rgba(255,255,255,0.4); font-weight: 500; }
 
-        .mock-banner {
-            display: none;
-            align-items: center;
-            gap: 0.6rem;
-            background: rgba(251, 191, 36, 0.08);
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            color: #fbbf24;
-            padding: 0.85rem 1.1rem;
-            border-radius: 12px;
-            font-size: 0.813rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-        }
-
-        .mock-banner.show { display: flex; }
-
         /* Settings modal */
         .modal-overlay {
             position: fixed; inset: 0;
@@ -606,10 +598,6 @@
                     <button class="icon-btn" onclick="openSettings()">⚙️ Gap Thresholds</button>
                     <button class="icon-btn" onclick="refreshData()">↻ Refresh</button>
                 </div>
-            </div>
-
-            <div class="mock-banner" id="mockBanner">
-                ⚠️ Showing sample data for properties not yet connected to Trello — see the README to wire up live lists.
             </div>
 
             <div class="stats-row" id="statsRow">
@@ -890,7 +878,6 @@
                 const data = await response.json();
                 clubData = data.clubs || {};
                 usedMock = Object.values(clubData).some(c => c.source === 'mock');
-                document.getElementById('mockBanner').classList.toggle('show', usedMock);
                 document.getElementById('syncPill').innerHTML = usedMock
                     ? '<span class="sync-dot"></span>Sample data'
                     : '<span class="sync-dot"></span>Live from Trello';
