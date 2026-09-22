@@ -92,6 +92,36 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ posts: all[code] }) };
     }
 
+    if (event.httpMethod === 'PUT') {
+      const body = JSON.parse(event.body || '{}');
+      const { club, id, date, platform, type, cardName } = body;
+
+      if (!club || !id || !date || !platform) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing club, id, date, or platform' }) };
+      }
+
+      const all = await loadAll();
+      const code = club.toUpperCase();
+      const list = all[code] || [];
+      const idx = list.findIndex(p => p.id === id);
+
+      if (idx === -1) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Post not found' }) };
+      }
+
+      list[idx] = {
+        ...list[idx],
+        date,
+        platform: platform.toUpperCase(),
+        type: type || '',
+        cardName: cardName || ''
+      };
+      all[code] = list;
+      await saveAll(all);
+
+      return { statusCode: 200, headers, body: JSON.stringify({ posts: all[code] }) };
+    }
+
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   } catch (error) {
     console.error('manual-posts error:', error);
