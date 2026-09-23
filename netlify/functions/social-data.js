@@ -37,6 +37,24 @@
 // Each parsed post carries the source card's name and link (shortUrl), so
 // the calendar lightbox can show which campaign card it came from.
 //
+// HOW THE FETCH WORKS (two phases, to stay under Trello's request limits)
+// -------------------------------------------------------------------------
+// Phase 1: fetch the full board's card list with NO comments attached
+// (cheap — one or two requests covers the whole board). Filter that list
+// down to cards that (a) match a recognized club prefix and (b) were
+// created in 2026 or later — older cards are ignored entirely, no API
+// call spent on them.
+// Phase 2: fetch comments individually for just that filtered set of
+// cards, a handful in parallel at a time. This is the expensive part, so
+// phase 1's filtering is what keeps it fast.
+//
+// DATA RETENTION
+// ---------------
+// Individual scheduled posts are dropped once their date is more than 3
+// months in the past — this happens at fetch time (nothing is persisted
+// long-term), so old posts simply stop appearing rather than needing a
+// cleanup job.
+//
 // CONFIGURATION NEEDED BEFORE GOING LIVE
 // ---------------------------------------
 //   TRELLO_API_KEY, TRELLO_TOKEN - same Trello credentials the project
@@ -161,61 +179,119 @@ function parseCardPrefix(cardName) {
   return m ? m[1].trim().toUpperCase() : null;
 }
 
-// ── Trello fetch ──
-// Pulls every card on the shared board — open AND archived, so a card
-// archived after its posts were scheduled still stays on the calendar —
-// along with its comments in a single request (actions=commentCard
-// embeds each card's comment history), parses every comment matching the
-// bookmarklet's schedule format, and groups the resulting posts by the
-// club code parsed from each card's title.
-const BOARD_PAGE_SIZE = 100; // Trello caps cards-with-actions requests; page through in batches
+// ── Trello fetch (two phases — see header comment) ──
 
-async function fetchBoardData(apiKey, token) {
-  const byCode = {};
+const MIN_CARD_CREATED = new Date(Date.UTC(2026, 0, 1)); // ignore cards created before 2026
+const POST_RETENTION_MONTHS = 3; // drop individual posts once their date is this old
+const COMMENT_FETCH_CONCURRENCY = 8; // per-card comment requests in flight at once
+
+// A Trello card id's first 8 hex characters encode its creation time
+// (Unix seconds) — this reads that off the id with no extra API call.
+function cardCreatedAt(cardId) {
+  const seconds = parseInt(cardId.substring(0, 8), 16);
+  return new Date(seconds * 1000);
+}
+
+// True if a post's date is within the retention window (not yet 3+
+// months old).
+function isWithinRetention(dateStr) {
+  const postDate = new Date(dateStr + 'T00:00:00');
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - POST_RETENTION_MONTHS);
+  cutoff.setHours(0, 0, 0, 0);
+  return postDate >= cutoff;
+}
+
+// Runs `fn` over `items` with at most `limit` running at once, so we
+// don't fire hundreds of simultaneous requests at Trello.
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  async function worker() {
+    while (nextIndex < items.length) {
+      const i = nextIndex++;
+      results[i] = await fn(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+// Phase 1: the full card list, no comments attached — cheap, and avoids
+// Trello's "too many cards requested" limit that only triggers when
+// comments are bundled in. Paginates defensively in case the board ever
+// exceeds Trello's 1000-cards-per-request cap.
+async function fetchBoardCardList(apiKey, token) {
+  const cards = [];
   let beforeId = null;
 
-  // Page through the whole board using "before" (a card id) as the
-  // cursor. Trello returns cards in a fixed order, so requesting
-  // "before=<last card id seen>" reliably picks up where the previous
-  // page left off. Stop once a page comes back short of a full page.
   while (true) {
     const params = new URLSearchParams({
       key: apiKey,
       token,
       filter: 'all',
       fields: 'name,shortUrl',
-      actions: 'commentCard',
-      actions_limit: '1000',
-      limit: String(BOARD_PAGE_SIZE)
+      limit: '1000'
     });
     if (beforeId) params.set('before', beforeId);
 
-    const cardsRes = await fetch(
-      `https://api.trello.com/1/boards/${SOCIAL_BOARD_ID}/cards?${params.toString()}`
-    );
-    if (!cardsRes.ok) {
-      const bodyText = await cardsRes.text().catch(() => '');
-      throw new Error(`Trello board fetch failed (HTTP ${cardsRes.status}): ${bodyText}`);
+    const res = await fetch(`https://api.trello.com/1/boards/${SOCIAL_BOARD_ID}/cards?${params.toString()}`);
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '');
+      throw new Error(`Trello board fetch failed (HTTP ${res.status}): ${bodyText}`);
     }
-    const cards = await cardsRes.json();
+    const page = await res.json();
+    cards.push(...page);
 
-    cards.forEach(card => {
-      const code = parseCardPrefix(card.name);
-      if (!code) return; // title doesn't follow the "CODE - Title" pattern
+    if (page.length < 1000) break; // last page
+    beforeId = page[page.length - 1].id;
+  }
 
-      let cardPosts = [];
-      (card.actions || []).forEach(action => {
-        const text = action.data && action.data.text;
-        cardPosts = cardPosts.concat(parseScheduleComment(text, card.name, card.shortUrl));
-      });
-      if (cardPosts.length === 0) return; // no schedule comments on this card
+  return cards;
+}
 
-      byCode[code] = (byCode[code] || []).concat(cardPosts);
+// Phase 2: comments for one card.
+async function fetchCardComments(cardId, apiKey, token) {
+  const params = new URLSearchParams({ key: apiKey, token, filter: 'commentCard', limit: '1000' });
+  const res = await fetch(`https://api.trello.com/1/cards/${cardId}/actions?${params.toString()}`);
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => '');
+    throw new Error(`Trello comment fetch failed for card ${cardId} (HTTP ${res.status}): ${bodyText}`);
+  }
+  return res.json();
+}
+
+async function fetchBoardData(apiKey, token) {
+  const allCards = await fetchBoardCardList(apiKey, token);
+
+  // Only fetch comments for cards that actually matter: a recognized
+  // club prefix, and created in 2026 or later. This is what keeps phase 2
+  // fast — most of the board never gets a comment request at all.
+  const relevantCards = allCards.filter(card => {
+    const code = parseCardPrefix(card.name);
+    if (!code) return false;
+    return cardCreatedAt(card.id) >= MIN_CARD_CREATED;
+  });
+
+  const byCode = {};
+
+  await mapWithConcurrency(relevantCards, COMMENT_FETCH_CONCURRENCY, async card => {
+    const code = parseCardPrefix(card.name);
+    const actions = await fetchCardComments(card.id, apiKey, token);
+
+    let cardPosts = [];
+    actions.forEach(action => {
+      const text = action.data && action.data.text;
+      cardPosts = cardPosts.concat(parseScheduleComment(text, card.name, card.shortUrl));
     });
 
-    if (cards.length < BOARD_PAGE_SIZE) break; // last page
-    beforeId = cards[cards.length - 1].id;
-  }
+    // Retention: drop individual posts once they're 3+ months past
+    // their date, regardless of the card itself.
+    cardPosts = cardPosts.filter(p => isWithinRetention(p.date));
+
+    if (cardPosts.length === 0) return;
+    byCode[code] = (byCode[code] || []).concat(cardPosts);
+  });
 
   return byCode;
 }
