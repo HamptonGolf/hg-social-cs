@@ -28,11 +28,10 @@
 //                                          project dashboard already uses
 //   SOCIAL_CUSTOM_FIELD_NAME (optional) - defaults to "Scheduled Posts"
 //   Per-club `socialListId` below        - the Trello LIST id holding that
-//                                          club's campaign cards. Until a
-//                                          club has one set, this function
-//                                          returns realistic sample data
-//                                          for it (source: "mock") so the
-//                                          whole tool is testable today.
+//                                          club's campaign cards. A club
+//                                          with no socialListId set returns
+//                                          source: "unconfigured" (empty
+//                                          posts) instead of sample data.
 
 const cache = { data: {}, timestamps: {} };
 const boardFieldCache = { data: {}, timestamps: {} };
@@ -143,61 +142,6 @@ function parseCustomFieldText(text, cardName, cardUrl) {
   return { posts, unparsed };
 }
 
-// ── Mock data (used when a club has no socialListId configured yet, or
-// when Trello credentials aren't set, so the tool is fully testable) ──
-function seedFromCode(code) {
-  let h = 0;
-  for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-function mulberry32(seed) {
-  return function () {
-    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const MOCK_PLATFORMS = [
-  { platform: 'IG', type: 'Post' }, { platform: 'IG', type: 'Reel' },
-  { platform: 'FB', type: 'Post' }, { platform: 'TT', type: '' },
-  { platform: 'LI', type: 'Post' }
-];
-
-function generateMockPosts(code) {
-  const rand = mulberry32(seedFromCode(code));
-  const posts = [];
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-
-  // Build a 45-day window (30 back, 14 forward) with a realistic posting
-  // cadence, and deliberately punch one gap in the middle so the gap
-  // detection has something to flag when demoing.
-  const start = new Date(today); start.setDate(start.getDate() - 30);
-  const deliberateGapStart = 8 + Math.floor(rand() * 10); // day offset from start
-  const deliberateGapLen = 4 + Math.floor(rand() * 4);
-
-  for (let i = 0; i <= 44; i++) {
-    const d = new Date(start); d.setDate(d.getDate() + i);
-    const inDeliberateGap = i >= deliberateGapStart && i < deliberateGapStart + deliberateGapLen;
-    if (inDeliberateGap) continue;
-    // Roughly 2-4 posts a week => ~40% daily chance
-    if (rand() < 0.4) {
-      const choice = MOCK_PLATFORMS[Math.floor(rand() * MOCK_PLATFORMS.length)];
-      const y = d.getFullYear(), mo = d.getMonth() + 1, da = d.getDate();
-      posts.push({
-        date: `${y}-${pad2(mo)}-${pad2(da)}`,
-        platform: choice.platform,
-        type: choice.type,
-        cardName: `${CLUBS[code] ? CLUBS[code].name : code} — Sample Campaign`,
-        cardUrl: null
-      });
-    }
-  }
-  return posts;
-}
-
 // ── Trello fetch ──
 async function getBoardCustomFieldId(boardId, apiKey, token) {
   const now = Date.now();
@@ -257,14 +201,16 @@ async function getClubData(code, apiKey, token) {
 
   if (!clubConfig) {
     result = { posts: [], unparsed: [], source: 'unknown' };
-  } else if (!clubConfig.socialListId || !apiKey || !token) {
-    result = { posts: generateMockPosts(code), unparsed: [], source: 'mock' };
+  } else if (!clubConfig.socialListId) {
+    result = { posts: [], unparsed: [], source: 'unconfigured' };
+  } else if (!apiKey || !token) {
+    result = { posts: [], unparsed: [], source: 'error', error: 'Trello credentials not configured' };
   } else {
     try {
       result = await fetchClubFromTrello(code, clubConfig.socialListId, apiKey, token);
     } catch (err) {
-      console.error(`Trello fetch failed for ${code}, falling back to sample data:`, err);
-      result = { posts: generateMockPosts(code), unparsed: [], source: 'mock' };
+      console.error(`Trello fetch failed for ${code}:`, err);
+      result = { posts: [], unparsed: [], source: 'error', error: 'Failed to fetch from Trello' };
     }
   }
 
