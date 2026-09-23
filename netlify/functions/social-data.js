@@ -172,7 +172,10 @@ async function fetchBoardData(apiKey, token) {
   const cardsRes = await fetch(
     `https://api.trello.com/1/boards/${SOCIAL_BOARD_ID}/cards?key=${apiKey}&token=${token}&filter=all&fields=name,shortUrl&actions=commentCard&actions_limit=1000`
   );
-  if (!cardsRes.ok) throw new Error(`Trello board fetch failed for board ${SOCIAL_BOARD_ID}`);
+  if (!cardsRes.ok) {
+    const bodyText = await cardsRes.text().catch(() => '');
+    throw new Error(`Trello board fetch failed (HTTP ${cardsRes.status}): ${bodyText}`);
+  }
   const cards = await cardsRes.json();
 
   const byCode = {};
@@ -241,7 +244,7 @@ exports.handler = async (event, context) => {
         byCode = await getBoardData(TRELLO_API_KEY, TRELLO_TOKEN);
       } catch (err) {
         console.error(`Trello fetch failed for board ${SOCIAL_BOARD_ID}:`, err);
-        boardError = 'Failed to fetch from Trello';
+        boardError = `Failed to fetch from Trello: ${err.message}`; // TEMP: revert to generic message once working
       }
     }
 
