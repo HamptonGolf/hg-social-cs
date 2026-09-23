@@ -262,7 +262,9 @@ async function fetchCardComments(cardId, apiKey, token) {
 }
 
 async function fetchBoardData(apiKey, token) {
+  const t0 = Date.now();
   const allCards = await fetchBoardCardList(apiKey, token);
+  const t1 = Date.now();
 
   // Only fetch comments for cards that actually matter: a recognized
   // club prefix, and created in 2026 or later. This is what keeps phase 2
@@ -292,6 +294,18 @@ async function fetchBoardData(apiKey, token) {
     if (cardPosts.length === 0) return;
     byCode[code] = (byCode[code] || []).concat(cardPosts);
   });
+
+  const t2 = Date.now();
+
+  // TEMP diagnostics — remove once performance/parsing is confirmed working.
+  byCode.__debug = {
+    totalCardsOnBoard: allCards.length,
+    relevantCardsAfterFilter: relevantCards.length,
+    relevantCardNames: relevantCards.map(c => c.name),
+    phase1Ms: t1 - t0,
+    phase2Ms: t2 - t1,
+    totalMs: t2 - t0
+  };
 
   return byCode;
 }
@@ -375,6 +389,8 @@ exports.handler = async (event, context) => {
     const data = boardError
       ? { posts: [], source: 'error', error: boardError }
       : buildClubResult(code, byCode);
+
+    if (byCode.__debug) data.__debug = byCode.__debug; // TEMP
 
     return {
       statusCode: 200,
