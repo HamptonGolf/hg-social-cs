@@ -168,31 +168,54 @@ function parseCardPrefix(cardName) {
 // embeds each card's comment history), parses every comment matching the
 // bookmarklet's schedule format, and groups the resulting posts by the
 // club code parsed from each card's title.
+const BOARD_PAGE_SIZE = 100; // Trello caps cards-with-actions requests; page through in batches
+
 async function fetchBoardData(apiKey, token) {
-  const cardsRes = await fetch(
-    `https://api.trello.com/1/boards/${SOCIAL_BOARD_ID}/cards?key=${apiKey}&token=${token}&filter=all&fields=name,shortUrl&actions=commentCard&actions_limit=1000`
-  );
-  if (!cardsRes.ok) {
-    const bodyText = await cardsRes.text().catch(() => '');
-    throw new Error(`Trello board fetch failed (HTTP ${cardsRes.status}): ${bodyText}`);
-  }
-  const cards = await cardsRes.json();
-
   const byCode = {};
+  let beforeId = null;
 
-  cards.forEach(card => {
-    const code = parseCardPrefix(card.name);
-    if (!code) return; // title doesn't follow the "CODE - Title" pattern
-
-    let cardPosts = [];
-    (card.actions || []).forEach(action => {
-      const text = action.data && action.data.text;
-      cardPosts = cardPosts.concat(parseScheduleComment(text, card.name, card.shortUrl));
+  // Page through the whole board using "before" (a card id) as the
+  // cursor. Trello returns cards in a fixed order, so requesting
+  // "before=<last card id seen>" reliably picks up where the previous
+  // page left off. Stop once a page comes back short of a full page.
+  while (true) {
+    const params = new URLSearchParams({
+      key: apiKey,
+      token,
+      filter: 'all',
+      fields: 'name,shortUrl',
+      actions: 'commentCard',
+      actions_limit: '1000',
+      limit: String(BOARD_PAGE_SIZE)
     });
-    if (cardPosts.length === 0) return; // no schedule comments on this card
+    if (beforeId) params.set('before', beforeId);
 
-    byCode[code] = (byCode[code] || []).concat(cardPosts);
-  });
+    const cardsRes = await fetch(
+      `https://api.trello.com/1/boards/${SOCIAL_BOARD_ID}/cards?${params.toString()}`
+    );
+    if (!cardsRes.ok) {
+      const bodyText = await cardsRes.text().catch(() => '');
+      throw new Error(`Trello board fetch failed (HTTP ${cardsRes.status}): ${bodyText}`);
+    }
+    const cards = await cardsRes.json();
+
+    cards.forEach(card => {
+      const code = parseCardPrefix(card.name);
+      if (!code) return; // title doesn't follow the "CODE - Title" pattern
+
+      let cardPosts = [];
+      (card.actions || []).forEach(action => {
+        const text = action.data && action.data.text;
+        cardPosts = cardPosts.concat(parseScheduleComment(text, card.name, card.shortUrl));
+      });
+      if (cardPosts.length === 0) return; // no schedule comments on this card
+
+      byCode[code] = (byCode[code] || []).concat(cardPosts);
+    });
+
+    if (cards.length < BOARD_PAGE_SIZE) break; // last page
+    beforeId = cards[cards.length - 1].id;
+  }
 
   return byCode;
 }
@@ -244,7 +267,7 @@ exports.handler = async (event, context) => {
         byCode = await getBoardData(TRELLO_API_KEY, TRELLO_TOKEN);
       } catch (err) {
         console.error(`Trello fetch failed for board ${SOCIAL_BOARD_ID}:`, err);
-        boardError = `Failed to fetch from Trello: ${err.message}`; // TEMP: revert to generic message once working
+        boardError = 'Failed to fetch from Trello';
       }
     }
 
