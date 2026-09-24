@@ -17,33 +17,15 @@
 
         html, body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #05070a;
             color: white;
             min-height: 100vh;
-            position: relative;
             overflow-x: hidden;
-        }
-
-        /* Grid backdrop, tinted with the current property's brand color
-           (--club-primary-rgb is set in JS by applyBranding()). */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background:
-                linear-gradient(180deg, #070a0f 0%, #05070a 60%, #040507 100%);
-            z-index: -3;
-        }
-
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
+            background-color: #05070a;
             background-image:
-                linear-gradient(rgba(var(--club-primary-rgb, 0, 180, 81), 0.14) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(var(--club-primary-rgb, 0, 180, 81), 0.14) 1px, transparent 1px);
+                linear-gradient(rgba(var(--club-primary-rgb, 0, 180, 81), 0.16) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(var(--club-primary-rgb, 0, 180, 81), 0.16) 1px, transparent 1px);
             background-size: 48px 48px;
-            z-index: -2;
+            background-attachment: fixed;
         }
 
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
