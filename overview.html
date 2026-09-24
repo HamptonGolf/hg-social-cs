@@ -756,12 +756,9 @@
             const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
             const postsThisWeek = dates.filter(d => d >= weekStart && d <= weekEnd).length;
 
-            let status = 'ok';
-            if (postsThisWeek === 0 || postsThisWeek <= target - 2) {
-                status = 'gap';
-            } else if (postsThisWeek < target) {
-                status = 'watch';
-            }
+            // Binary pace: green only when the week's target is fully met,
+            // red for anything short of it (0 up through target - 1 posts).
+            const status = postsThisWeek >= target ? 'ok' : 'gap';
 
             return { status, lastPost, nextPost, daysSince, postsThisWeek, weeklyTarget: target };
         }
