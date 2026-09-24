@@ -809,12 +809,12 @@
         }
 
         // Compute contiguous gap ranges across the full known post range (30 days back to 30 days forward from today, or bounded by data)
-        // Scans a full year on either side of today (±365 days) for
-        // below-target stretches — not just the current week — so the side
-        // panel surfaces upcoming light weeks and past ones still in view.
+        // Scans from the start of the CURRENT week forward 365 days for
+        // below-target stretches. Weeks before this one are done and are
+        // never flagged, regardless of how they went.
         function computeGapRanges() {
             const today = new Date(); today.setHours(0, 0, 0, 0);
-            const rangeStart = new Date(today); rangeStart.setDate(rangeStart.getDate() - 365);
+            const rangeStart = getWeekStart(today);
             const rangeEnd = new Date(today); rangeEnd.setDate(rangeEnd.getDate() + 365);
 
             const flaggedDays = [];
@@ -854,6 +854,9 @@
             const key = dateKey(d);
             const hasPostThatDay = posts.some(p => p.date === key);
             if (hasPostThatDay) return false;
+
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            if (d < getWeekStart(today)) return false; // weeks before this one are done, never flagged
 
             const weekStart = getWeekStart(d);
             const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
