@@ -1055,7 +1055,7 @@
                     upEl.innerHTML = upcoming.map(p => {
                         const color = PLATFORM_COLORS[(p.platform || '').toUpperCase()] || '#fb923c';
                         return `
-                            <div class="upcoming-item">
+                            <div class="upcoming-item" style="cursor:pointer;" onclick="openPostLightbox(${p._uid})">
                                 <span class="upcoming-date">${formatShort(new Date(p.date + 'T00:00:00'))}</span>
                                 <span class="upcoming-platform" style="background:${color}">${(p.platform || '?').toUpperCase()}</span>
                                 <span class="upcoming-label">${p.type ? p.type + ' — ' : ''}${p.cardName || ''}</span>
