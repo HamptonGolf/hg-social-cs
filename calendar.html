@@ -809,13 +809,16 @@
         }
 
         // Compute contiguous gap ranges across the full known post range (30 days back to 30 days forward from today, or bounded by data)
+        // Scans a full year on either side of today (±365 days) for
+        // below-target stretches — not just the current week — so the side
+        // panel surfaces upcoming light weeks and past ones still in view.
         function computeGapRanges() {
-            const today = new Date(); today.setHours(0,0,0,0);
-            const weekStart = new Date(today);
-            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const rangeStart = new Date(today); rangeStart.setDate(rangeStart.getDate() - 365);
+            const rangeEnd = new Date(today); rangeEnd.setDate(rangeEnd.getDate() + 365);
 
             const flaggedDays = [];
-            for (let d = new Date(weekStart); d <= today; d.setDate(d.getDate() + 1)) {
+            for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + 1)) {
                 if (isGapDay(new Date(d))) flaggedDays.push(new Date(d));
             }
 
@@ -835,26 +838,30 @@
             return ranges;
         }
 
-        // Only the CURRENT calendar week (Sun–Sat) is ever evaluated for pace —
-        // past weeks are done and shouldn't be relitigated, and future days
-        // haven't happened yet. A day is flagged only if it has no post of its
-        // own AND the week as a whole (through today) is short of target.
+        function getWeekStart(d) {
+            const ws = new Date(d); ws.setHours(0, 0, 0, 0);
+            ws.setDate(ws.getDate() - ws.getDay()); // back to Sunday
+            return ws;
+        }
+
+        // A day is flagged when it has no post of its own AND its whole
+        // Sun–Sat week falls short of the weekly target — evaluated using the
+        // WEEK'S TOTAL post count, not just posts up through today. That means
+        // once a week is confirmed short, every day in it without a post is
+        // flagged, past or future, so a light week shows red across the board
+        // rather than only on days already behind "today."
         function isGapDay(d) {
-            const today = new Date(); today.setHours(0,0,0,0);
-            if (d > today) return false;
-
-            const weekStart = new Date(today);
-            weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // back to Sunday
-            if (d < weekStart) return false;
-
             const key = dateKey(d);
             const hasPostThatDay = posts.some(p => p.date === key);
             if (hasPostThatDay) return false;
 
+            const weekStart = getWeekStart(d);
+            const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+
             const target = getWeeklyTargets()[currentCode];
             const postsThisWeek = posts.filter(p => {
                 const pd = new Date(p.date + 'T00:00:00');
-                return pd >= weekStart && pd <= today;
+                return pd >= weekStart && pd <= weekEnd;
             }).length;
 
             return postsThisWeek < target;
