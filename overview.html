@@ -595,7 +595,7 @@
                     <p>Social content schedule &amp; posting-gap monitor</p>
                 </div>
                 <div class="header-actions">
-                    <button class="icon-btn" onclick="openSettings()">⚙️ Gap Thresholds</button>
+                    <button class="icon-btn" onclick="openSettings()">⚙️ Weekly Targets</button>
                     <button class="icon-btn" onclick="refreshData()">↻ Refresh</button>
                 </div>
             </div>
@@ -604,14 +604,14 @@
                 <div class="stat-tile"><div class="num">—</div><div class="lbl">Properties</div></div>
                 <div class="stat-tile ok"><div class="num">—</div><div class="lbl">On Track</div></div>
                 <div class="stat-tile watch"><div class="num">—</div><div class="lbl">Watch</div></div>
-                <div class="stat-tile gap"><div class="num">—</div><div class="lbl">Gap Detected</div></div>
+                <div class="stat-tile gap"><div class="num">—</div><div class="lbl">Behind Pace</div></div>
             </div>
 
             <div class="grid-header">
                 <h2>Properties</h2>
                 <div class="filter-tabs" id="filterTabs">
                     <button class="filter-tab active" data-filter="all">All</button>
-                    <button class="filter-tab" data-filter="gap">Gaps Only</button>
+                    <button class="filter-tab" data-filter="gap">Behind Pace</button>
                     <button class="filter-tab" data-filter="watch">Watch</button>
                     <button class="filter-tab" data-filter="ok">On Track</button>
                 </div>
@@ -630,11 +630,11 @@
     <div class="modal-overlay" id="settingsModal">
         <div class="modal">
             <div class="modal-header">
-                <h3>Gap Thresholds</h3>
+                <h3>Weekly Post Targets</h3>
                 <button class="modal-close" onclick="closeSettings()">&times;</button>
             </div>
             <div class="modal-body">
-                <p class="hint">Set how many days without a scheduled post triggers a gap flag for each property. Lower-volume clubs can tolerate a longer gap than high-volume ones.</p>
+                <p class="hint">Set how many posts per week each property should hit. The team's norm is 3x/week — set lower-volume clubs lower and higher-volume clubs higher.</p>
                 <div id="thresholdList"></div>
             </div>
             <div class="modal-footer">
@@ -655,38 +655,40 @@
         // backend returns realistic sample data for that club so the tool is
         // fully testable end-to-end.
         //
-        // gapThresholdDays: default days-without-a-post before a gap is flagged.
-        // Editable live from the "Gap Thresholds" panel (persisted per-browser).
+        // weeklyPostTarget: how many posts per rolling 7-day week this property
+        // should hit (the team's norm is 3x/week; higher/lower-volume clubs can
+        // be set differently). Editable live from the "Weekly Targets" panel
+        // (persisted per-browser).
         const CLUBS = {
-            "AC":   { name: "Astor Creek Golf & Country Club", primary: "#2B5265", logo: "AC_Blue (2).png", socialListId: null, gapThresholdDays: 2 },
-            "BS":   { name: "Blue Sky Golf Club", primary: "#3A8DDE", secondary: "#808284", logo: "BS_Logo_clr.png", socialListId: null, gapThresholdDays: 3 },
-            "DCC":  { name: "Deerwood Country Club", primary: "#6BA66C", secondary: "#000000", logo: "logo-clr.png", socialListId: null, gapThresholdDays: 3 },
-            "ECHO": { name: "Echo Hills Golf Course", primary: "#002A3A", logo: "ECHO-Logo-blk.png", socialListId: null, gapThresholdDays: 4 },
-            "EH":   { name: "Eagle Harbor Golf Club", primary: "#008A5E", logo: "Eagle Harbor PMS 3415 vert.png", socialListId: null, gapThresholdDays: 3 },
-            "FF":   { name: "Falcon's Fire Golf Club", primary: "#B73330", secondary: "#938055", logo: "FF-logo-clr.png", socialListId: null, gapThresholdDays: 3 },
-            "FPP":  { name: "Fort Piqua Plaza", primary: "#A39161", logo: "Fort logo with drop shadow.png", socialListId: null, gapThresholdDays: 4 },
-            "GK":   { name: "Glen Kernan Club", primary: "#7B7F80", logo: "GK - LOGO-BLK (1).png", socialListId: null, gapThresholdDays: 3 },
-            "GCC":  { name: "Glynlea Country Club", primary: "#15576b", secondary: "#3399cc", logo: "Glynlea Flying Bird - clr.png", socialListId: null, gapThresholdDays: 3 },
-            "HCC":  { name: "Hampshire Country Club", primary: "#00483A", logo: "HCC-Logo-clr.png", socialListId: null, gapThresholdDays: 3 },
-            "HH":   { name: "Harbor Hills Country Club", primary: "#C29B43", logo: "HH-Logo-clr.png", socialListId: null, gapThresholdDays: 3 },
-            "KGGC": { name: "Kings Gate Golf Club", primary: "#788592", secondary: "#475563", logo: "KGGC_logo_VERT_blk.png", socialListId: null, gapThresholdDays: 3 },
-            "LO":   { name: "Laurel Oak Country Club", primary: "#C2A06E", logo: "Laurel Oak Logo_gold+blk.png", socialListId: null, gapThresholdDays: 3 },
-            "MVC":  { name: "Medalist Village Club", primary: "#0F2544", secondary: "#C38B6D", logo: "MVC-logo.png", socialListId: null, gapThresholdDays: 4 },
-            "NCC":  { name: "Northland Country Club", primary: "#40683C", logo: "NCC logo_blue grey.png", socialListId: null, gapThresholdDays: 3 },
-            "PR/DWN": { name: "Panther Run Golf Club", primary: "#0082CA", secondary: "#00344C", logo: "PR-Logo-Clr.png", socialListId: null, gapThresholdDays: 3 },
-            "PS":   { name: "PipeStone Golf Club", primary: "#653230", secondary: "#5B6670", logo: "PS_logo_clr.png", socialListId: null, gapThresholdDays: 3 },
-            "RBCC": { name: "Rarity Bay Golf & Country Club", primary: "#B2A97E", secondary: "#251F21", logo: "RBCC_logo-removebg-preview (2).png", socialListId: null, gapThresholdDays: 4 },
-            "RH":   { name: "River Hall Country Club", primary: "#465967", logo: "RHlogo_color CC.png", socialListId: null, gapThresholdDays: 3 },
-            "RMC":  { name: "Roscoe Mountain Club", primary: "#006600", logo: "RMC_PrimaryLogo_Green.png", socialListId: null, gapThresholdDays: 3 },
-            "RVCC": { name: "Raritan Valley Country Club", primary: "#2A3561", secondary: "#D1CC8E", logo: "logo-mark.png", socialListId: null, gapThresholdDays: 3 },
-            "SW":   { name: "Stillwater Golf & Country Club", primary: "#6FA088", secondary: "#003A70", logo: "SW_Logo-Color (1).png", socialListId: null, gapThresholdDays: 3 },
-            "SCGC": { name: "Stone Creek Golf Club", primary: "#845D32", secondary: "#124734", logo: "SC_logo_clr.png", socialListId: null, gapThresholdDays: 3 },
-            "STG":  { name: "Stonegate Golf Club", primary: "#546122", secondary: "#D7282F", logo: "StonegateLOGO-clr.png", socialListId: null, gapThresholdDays: 3 },
-            "TARA": { name: "Tara Golf and Country Club", primary: "#AD8A57", secondary: "#008F4E", logo: "Tara Logos.png", socialListId: null, gapThresholdDays: 3 },
-            "TER":  { name: "Terreno", primary: "#12425E", secondary: "#29A8AB", logo: "Terreno_by_DiVosta_Logo clr.png", socialListId: null, gapThresholdDays: 3 },
-            "TN":   { name: "Tennessee National", primary: "#3F873F", secondary: "#76BC21", logo: "TN-clr.png", socialListId: null, gapThresholdDays: 3 },
-            "VER":  { name: "Verandah Golf Club", primary: "#7C8956", secondary: "#D77F37", logo: "Verandah-Logo-Green.png", socialListId: null, gapThresholdDays: 3 },
-            "VRC":  { name: "Venetian River Club", primary: "#650841", secondary: "#C7892B", logo: "Venetian_River_Club-clr.png", socialListId: null, gapThresholdDays: 4 }
+            "AC":   { name: "Astor Creek Golf & Country Club", primary: "#2B5265", logo: "AC_Blue (2).png", socialListId: null, weeklyPostTarget: 3 },
+            "BS":   { name: "Blue Sky Golf Club", primary: "#3A8DDE", secondary: "#808284", logo: "BS_Logo_clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "DCC":  { name: "Deerwood Country Club", primary: "#6BA66C", secondary: "#000000", logo: "logo-clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "ECHO": { name: "Echo Hills Golf Course", primary: "#002A3A", logo: "ECHO-Logo-blk.png", socialListId: null, weeklyPostTarget: 3 },
+            "EH":   { name: "Eagle Harbor Golf Club", primary: "#008A5E", logo: "Eagle Harbor PMS 3415 vert.png", socialListId: null, weeklyPostTarget: 3 },
+            "FF":   { name: "Falcon's Fire Golf Club", primary: "#B73330", secondary: "#938055", logo: "FF-logo-clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "FPP":  { name: "Fort Piqua Plaza", primary: "#A39161", logo: "Fort logo with drop shadow.png", socialListId: null, weeklyPostTarget: 3 },
+            "GK":   { name: "Glen Kernan Club", primary: "#7B7F80", logo: "GK - LOGO-BLK (1).png", socialListId: null, weeklyPostTarget: 3 },
+            "GCC":  { name: "Glynlea Country Club", primary: "#15576b", secondary: "#3399cc", logo: "Glynlea Flying Bird - clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "HCC":  { name: "Hampshire Country Club", primary: "#00483A", logo: "HCC-Logo-clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "HH":   { name: "Harbor Hills Country Club", primary: "#C29B43", logo: "HH-Logo-clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "KGGC": { name: "Kings Gate Golf Club", primary: "#788592", secondary: "#475563", logo: "KGGC_logo_VERT_blk.png", socialListId: null, weeklyPostTarget: 3 },
+            "LO":   { name: "Laurel Oak Country Club", primary: "#C2A06E", logo: "Laurel Oak Logo_gold+blk.png", socialListId: null, weeklyPostTarget: 3 },
+            "MVC":  { name: "Medalist Village Club", primary: "#0F2544", secondary: "#C38B6D", logo: "MVC-logo.png", socialListId: null, weeklyPostTarget: 3 },
+            "NCC":  { name: "Northland Country Club", primary: "#40683C", logo: "NCC logo_blue grey.png", socialListId: null, weeklyPostTarget: 3 },
+            "PR/DWN": { name: "Panther Run Golf Club", primary: "#0082CA", secondary: "#00344C", logo: "PR-Logo-Clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "PS":   { name: "PipeStone Golf Club", primary: "#653230", secondary: "#5B6670", logo: "PS_logo_clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "RBCC": { name: "Rarity Bay Golf & Country Club", primary: "#B2A97E", secondary: "#251F21", logo: "RBCC_logo-removebg-preview (2).png", socialListId: null, weeklyPostTarget: 3 },
+            "RH":   { name: "River Hall Country Club", primary: "#465967", logo: "RHlogo_color CC.png", socialListId: null, weeklyPostTarget: 3 },
+            "RMC":  { name: "Roscoe Mountain Club", primary: "#006600", logo: "RMC_PrimaryLogo_Green.png", socialListId: null, weeklyPostTarget: 3 },
+            "RVCC": { name: "Raritan Valley Country Club", primary: "#2A3561", secondary: "#D1CC8E", logo: "logo-mark.png", socialListId: null, weeklyPostTarget: 3 },
+            "SW":   { name: "Stillwater Golf & Country Club", primary: "#6FA088", secondary: "#003A70", logo: "SW_Logo-Color (1).png", socialListId: null, weeklyPostTarget: 3 },
+            "SCGC": { name: "Stone Creek Golf Club", primary: "#845D32", secondary: "#124734", logo: "SC_logo_clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "STG":  { name: "Stonegate Golf Club", primary: "#546122", secondary: "#D7282F", logo: "StonegateLOGO-clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "TARA": { name: "Tara Golf and Country Club", primary: "#AD8A57", secondary: "#008F4E", logo: "Tara Logos.png", socialListId: null, weeklyPostTarget: 3 },
+            "TER":  { name: "Terreno", primary: "#12425E", secondary: "#29A8AB", logo: "Terreno_by_DiVosta_Logo clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "TN":   { name: "Tennessee National", primary: "#3F873F", secondary: "#76BC21", logo: "TN-clr.png", socialListId: null, weeklyPostTarget: 3 },
+            "VER":  { name: "Verandah Golf Club", primary: "#7C8956", secondary: "#D77F37", logo: "Verandah-Logo-Green.png", socialListId: null, weeklyPostTarget: 3 },
+            "VRC":  { name: "Venetian River Club", primary: "#650841", secondary: "#C7892B", logo: "Venetian_River_Club-clr.png", socialListId: null, weeklyPostTarget: 3 }
         };
 
         function requireAuth() {
@@ -702,17 +704,17 @@
             window.location.href = 'index.html';
         }
 
-        function getThresholds() {
+        function getWeeklyTargets() {
             try {
-                const stored = JSON.parse(localStorage.getItem('hgGapThresholds') || '{}');
+                const stored = JSON.parse(localStorage.getItem('hgWeeklyTargets') || '{}');
                 const merged = {};
                 Object.keys(CLUBS).forEach(code => {
-                    merged[code] = stored[code] ?? CLUBS[code].gapThresholdDays;
+                    merged[code] = stored[code] ?? CLUBS[code].weeklyPostTarget;
                 });
                 return merged;
             } catch (e) {
                 const fallback = {};
-                Object.keys(CLUBS).forEach(code => fallback[code] = CLUBS[code].gapThresholdDays);
+                Object.keys(CLUBS).forEach(code => fallback[code] = CLUBS[code].weeklyPostTarget);
                 return fallback;
             }
         }
@@ -726,11 +728,11 @@
         }
 
         function computeStatus(code, posts) {
-            const threshold = getThresholds()[code];
+            const target = getWeeklyTargets()[code];
             const today = new Date(); today.setHours(0,0,0,0);
 
             if (!posts || posts.length === 0) {
-                return { status: 'unknown', lastPost: null, nextPost: null, daysSince: null };
+                return { status: 'unknown', lastPost: null, nextPost: null, daysSince: null, postsThisWeek: 0, weeklyTarget: target };
             }
 
             const dates = posts.map(p => new Date(p.date + 'T00:00:00')).sort((a,b) => a - b);
@@ -741,18 +743,19 @@
             const nextPost = future.length ? future[0] : null;
             const daysSince = lastPost ? daysBetween(lastPost, today) : null;
 
+            // Weekly posting pace: posts in the trailing 7-day window (today
+            // and the 6 days before it) compared against the weekly target.
+            const weekStart = new Date(today); weekStart.setDate(weekStart.getDate() - 6);
+            const postsThisWeek = dates.filter(d => d >= weekStart && d <= today).length;
+
             let status = 'ok';
-            if (daysSince === null || daysSince >= threshold) {
+            if (postsThisWeek === 0 || postsThisWeek <= target - 2) {
                 status = 'gap';
-            } else if (daysSince >= threshold - 1) {
-                status = 'watch';
-            }
-            // Also flag if the *next* scheduled post is further out than the threshold from today
-            if (status === 'ok' && nextPost && daysBetween(today, nextPost) > threshold) {
+            } else if (postsThisWeek < target) {
                 status = 'watch';
             }
 
-            return { status, lastPost, nextPost, daysSince };
+            return { status, lastPost, nextPost, daysSince, postsThisWeek, weeklyTarget: target };
         }
 
         function buildSparkline(posts) {
@@ -800,13 +803,13 @@
                 <div class="stat-tile"><div class="num">${Object.keys(CLUBS).length}</div><div class="lbl">Properties</div></div>
                 <div class="stat-tile ok"><div class="num">${counts.ok}</div><div class="lbl">On Track</div></div>
                 <div class="stat-tile watch"><div class="num">${counts.watch}</div><div class="lbl">Watch</div></div>
-                <div class="stat-tile gap"><div class="num">${counts.gap}</div><div class="lbl">Gap Detected</div></div>
+                <div class="stat-tile gap"><div class="num">${counts.gap}</div><div class="lbl">Behind Pace</div></div>
             `;
         }
 
         function renderGrid() {
             const grid = document.getElementById('propertiesGrid');
-            const threshold = getThresholds();
+            const targets = getWeeklyTargets();
             const entries = Object.entries(CLUBS).filter(([code, club]) => {
                 if (currentFilter === 'all') return true;
                 const info = computeStatus(code, (clubData[code] || {}).posts);
@@ -822,9 +825,9 @@
                 const posts = (clubData[code] || {}).posts || [];
                 const info = computeStatus(code, posts);
                 const spark = buildSparkline(posts);
-                const gapLabel = info.status === 'gap'
-                    ? (info.daysSince === null ? 'No posts found' : `${info.daysSince}d since last post`)
-                    : info.status === 'watch' ? 'Approaching gap' : 'On track';
+                const gapLabel = info.status === 'unknown'
+                    ? 'No posts found'
+                    : `${info.postsThisWeek}/${info.weeklyTarget} posts this week`;
 
                 return `
                     <a class="property-card status-${info.status}" href="calendar.html?club=${encodeURIComponent(code)}" style="--club-primary: ${club.primary}; --pc-color: ${club.primary}">
@@ -832,11 +835,11 @@
                             <img src="assets/logos/${club.logo}" alt="">
                             <div class="property-card-name">
                                 <div class="title">${club.name}</div>
-                                <div class="code">${code} · Gap limit ${threshold[code]}d</div>
+                                <div class="code">${code} · Target ${targets[code]}x/week</div>
                             </div>
                         </div>
                         <span class="status-pill ${info.status}">
-                            ${info.status === 'gap' ? '⚠ Gap Detected' : info.status === 'watch' ? '◑ Watch' : info.status === 'ok' ? '✓ On Track' : '– No Data'}
+                            ${info.status === 'gap' ? '⚠ Behind Pace' : info.status === 'watch' ? '◑ Watch' : info.status === 'ok' ? '✓ On Track' : '– No Data'}
                         </span>
                         <div class="sparkline">
                             ${spark.map(has => `<div class="spark-bar ${has ? 'has-post' : ''}" style="height:${has ? 100 : 30}%"></div>`).join('')}
@@ -907,14 +910,14 @@
 
         // ── Settings modal ──
         function openSettings() {
-            const thresholds = getThresholds();
+            const targets = getWeeklyTargets();
             const list = document.getElementById('thresholdList');
             list.innerHTML = Object.entries(CLUBS).map(([code, club]) => `
                 <div class="threshold-row">
                     <img src="assets/logos/${club.logo}" alt="">
                     <span class="tname">${club.name}</span>
-                    <input type="number" min="1" max="30" value="${thresholds[code]}" data-code="${code}">
-                    <span class="days-lbl">days</span>
+                    <input type="number" min="1" max="14" value="${targets[code]}" data-code="${code}">
+                    <span class="days-lbl">x/week</span>
                 </div>
             `).join('');
             document.getElementById('settingsModal').classList.add('show');
@@ -929,9 +932,9 @@
             const stored = {};
             inputs.forEach(input => {
                 const val = parseInt(input.value, 10);
-                stored[input.dataset.code] = isNaN(val) || val < 1 ? CLUBS[input.dataset.code].gapThresholdDays : val;
+                stored[input.dataset.code] = isNaN(val) || val < 1 ? CLUBS[input.dataset.code].weeklyPostTarget : val;
             });
-            localStorage.setItem('hgGapThresholds', JSON.stringify(stored));
+            localStorage.setItem('hgWeeklyTargets', JSON.stringify(stored));
             closeSettings();
             renderAll();
         }
