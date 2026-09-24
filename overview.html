@@ -595,7 +595,6 @@
                     <p>Social content schedule &amp; posting-gap monitor</p>
                 </div>
                 <div class="header-actions">
-                    <span class="sync-pill" id="syncPill"><span class="sync-dot"></span>Live from Trello</span>
                     <button class="icon-btn" onclick="openSettings()">⚙️ Gap Thresholds</button>
                     <button class="icon-btn" onclick="refreshData()">↻ Refresh</button>
                 </div>
@@ -892,10 +891,6 @@
                     };
                 });
 
-                usedMock = Object.values(clubData).some(c => c.source === 'mock');
-                document.getElementById('syncPill').innerHTML = usedMock
-                    ? '<span class="sync-dot"></span>Sample data'
-                    : '<span class="sync-dot"></span>Live from Trello';
                 renderAll();
             } catch (error) {
                 console.error('Error loading social data:', error);
