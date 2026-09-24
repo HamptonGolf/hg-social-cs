@@ -20,6 +20,32 @@
             background: #05070a;
             color: white;
             min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Grid backdrop, tinted with the current property's brand color
+           (--club-primary-rgb is set in JS by applyBranding()). */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(180deg, #070a0f 0%, #05070a 60%, #040507 100%);
+            z-index: -3;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(var(--club-primary-rgb, 0, 180, 81), 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(var(--club-primary-rgb, 0, 180, 81), 0.08) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 80%);
+            z-index: -2;
         }
 
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -708,10 +734,19 @@
         viewDate.setDate(1);
         let allClubStatus = {}; // for sidebar dots, lazy-loaded
 
+        function hexToRgb(hex) {
+            const clean = (hex || '').replace('#', '');
+            const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
+            const num = parseInt(full, 16);
+            if (isNaN(num) || full.length !== 6) return '0, 180, 81';
+            return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
+        }
+
         function applyBranding(code) {
             const club = CLUBS[code];
             document.documentElement.style.setProperty('--club-primary', club.primary);
             document.documentElement.style.setProperty('--club-secondary', club.secondary || club.primary);
+            document.documentElement.style.setProperty('--club-primary-rgb', hexToRgb(club.primary));
             document.getElementById('sidebarLogo').src = `assets/logos/${club.logo}`;
             document.getElementById('sidebarClubName').textContent = club.name;
             document.getElementById('sidebarClubCode').textContent = code;
