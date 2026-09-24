@@ -279,6 +279,17 @@
             position: relative;
             overflow: hidden;
             cursor: default;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
+        }
+
+        .day-cell:not(.outside):hover {
+            transform: translateY(-3px);
+        }
+
+        /* Branded border on hover, matching the today ring's color — skipped
+           for gap days, which keep their red styling and only get the lift. */
+        .day-cell:not(.outside):not(.is-gap):hover {
+            border-color: var(--club-primary, #00B451);
         }
 
         .day-cell.outside { opacity: 0.25; }
