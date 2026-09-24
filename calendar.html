@@ -282,8 +282,17 @@
             transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
         }
 
+        .day-cell:not(.outside) { cursor: pointer; }
+
         .day-cell:not(.outside):hover {
             transform: translateY(-3px);
+        }
+
+        /* Layered with outline (not box-shadow) so it doesn't fight with the
+           today/gap box-shadow styling — visible regardless of day state. */
+        .day-cell.is-selected {
+            outline: 2px solid rgba(255, 255, 255, 0.65);
+            outline-offset: -2px;
         }
 
         /* Branded border on hover, matching the today ring's color — skipped
@@ -605,7 +614,7 @@
                     </div>
 
                     <div class="panel-card">
-                        <h3>Upcoming Posts</h3>
+                        <h3 id="upcomingHeader">Upcoming Posts</h3>
                         <div id="upcomingList"><p class="empty-note">Loading...</p></div>
                     </div>
 
@@ -760,6 +769,19 @@
         let viewDate = new Date();
         viewDate.setDate(1);
         let allClubStatus = {}; // for sidebar dots, lazy-loaded
+        let selectedDate = null; // dateKey of the day clicked on the calendar, if any
+
+        function selectDay(key) {
+            selectedDate = (selectedDate === key) ? null : key;
+            renderCalendar();
+            renderPanels();
+        }
+
+        function clearSelectedDay() {
+            selectedDate = null;
+            renderCalendar();
+            renderPanels();
+        }
 
         // hexToRgb is already declared in the <head> script above.
 
@@ -923,8 +945,10 @@
                 }).join('');
                 const more = dayPosts.length > 3 ? `<div class="post-chip" style="background:rgba(255,255,255,0.15); color:white;" onclick="event.stopPropagation(); openDayList('${key}')">+${dayPosts.length - 3} more</div>` : '';
 
+                const isSelected = !cell.outside && key === selectedDate;
+
                 return `
-                    <div class="day-cell ${cell.outside ? 'outside' : ''} ${isToday ? 'is-today' : ''} ${gap ? 'is-gap' : ''}" title="${dayPosts.length ? dayPosts.map(p => `${p.platform || ''} ${p.type || ''} — ${p.cardName || ''}`).join('\\n') : ''}">
+                    <div class="day-cell ${cell.outside ? 'outside' : ''} ${isToday ? 'is-today' : ''} ${gap ? 'is-gap' : ''} ${isSelected ? 'is-selected' : ''}" title="${dayPosts.length ? dayPosts.map(p => `${p.platform || ''} ${p.type || ''} — ${p.cardName || ''}`).join('\\n') : ''}" ${cell.outside ? '' : `onclick="selectDay('${key}')"`}>
                         <span class="day-num">${cell.date.getDate()}</span>
                         <div class="day-posts">${chips}${more}</div>
                         ${gap ? '<span class="gap-flag"></span>' : ''}
@@ -992,26 +1016,53 @@
                 }).join('');
             }
 
-            // Upcoming
-            const today = new Date(); today.setHours(0,0,0,0);
-            const upcoming = posts
-                .filter(p => new Date(p.date + 'T00:00:00') >= today)
-                .sort((a, b) => a.date.localeCompare(b.date))
-                .slice(0, 8);
+            // Upcoming — or, if a day is selected on the calendar, that day's posts
+            const upHeaderEl = document.getElementById('upcomingHeader');
             const upEl = document.getElementById('upcomingList');
-            if (upcoming.length === 0) {
-                upEl.innerHTML = `<p class="empty-note">No upcoming posts scheduled.</p>`;
+            const today = new Date(); today.setHours(0,0,0,0);
+
+            if (selectedDate) {
+                const dayLabel = new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                upHeaderEl.textContent = `Posts — ${dayLabel}`;
+
+                const dayPosts = posts.filter(p => p.date === selectedDate);
+                const backLink = `<p class="empty-note" style="padding-top:0.5rem;"><a href="#" onclick="clearSelectedDay(); return false;" style="color:#4ade80; font-weight:700; text-decoration:none;">← Back to upcoming</a></p>`;
+
+                if (dayPosts.length === 0) {
+                    upEl.innerHTML = `<p class="empty-note">No posts scheduled for this day.</p>${backLink}`;
+                } else {
+                    upEl.innerHTML = dayPosts.map(p => {
+                        const color = PLATFORM_COLORS[(p.platform || '').toUpperCase()] || '#fb923c';
+                        return `
+                            <div class="upcoming-item">
+                                <span class="upcoming-date">${formatShort(new Date(p.date + 'T00:00:00'))}</span>
+                                <span class="upcoming-platform" style="background:${color}">${(p.platform || '?').toUpperCase()}</span>
+                                <span class="upcoming-label">${p.type ? p.type + ' — ' : ''}${p.cardName || ''}</span>
+                            </div>
+                        `;
+                    }).join('') + backLink;
+                }
             } else {
-                upEl.innerHTML = upcoming.map(p => {
-                    const color = PLATFORM_COLORS[(p.platform || '').toUpperCase()] || '#fb923c';
-                    return `
-                        <div class="upcoming-item">
-                            <span class="upcoming-date">${formatShort(new Date(p.date + 'T00:00:00'))}</span>
-                            <span class="upcoming-platform" style="background:${color}">${(p.platform || '?').toUpperCase()}</span>
-                            <span class="upcoming-label">${p.type ? p.type + ' — ' : ''}${p.cardName || ''}</span>
-                        </div>
-                    `;
-                }).join('');
+                upHeaderEl.textContent = 'Upcoming Posts';
+                const upcoming = posts
+                    .filter(p => new Date(p.date + 'T00:00:00') >= today)
+                    .sort((a, b) => a.date.localeCompare(b.date))
+                    .slice(0, 8);
+
+                if (upcoming.length === 0) {
+                    upEl.innerHTML = `<p class="empty-note">No upcoming posts scheduled.</p>`;
+                } else {
+                    upEl.innerHTML = upcoming.map(p => {
+                        const color = PLATFORM_COLORS[(p.platform || '').toUpperCase()] || '#fb923c';
+                        return `
+                            <div class="upcoming-item">
+                                <span class="upcoming-date">${formatShort(new Date(p.date + 'T00:00:00'))}</span>
+                                <span class="upcoming-platform" style="background:${color}">${(p.platform || '?').toUpperCase()}</span>
+                                <span class="upcoming-label">${p.type ? p.type + ' — ' : ''}${p.cardName || ''}</span>
+                            </div>
+                        `;
+                    }).join('');
+                }
             }
         }
 
