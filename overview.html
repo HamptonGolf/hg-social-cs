@@ -733,6 +733,26 @@
             return ws;
         }
 
+        // Checks every Sun–Sat week from the current week through 30 days out;
+        // returns true if ANY of those weeks falls short of the target. This
+        // is what drives the On Track / Behind Pace badge — a fully-met
+        // current week doesn't count as "on track" if a week later in the
+        // 30-day window is short.
+        function hasUpcomingShortfall(target, dates) {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const rangeEnd = new Date(today); rangeEnd.setDate(rangeEnd.getDate() + 30);
+
+            let weekStart = getWeekStart(today);
+            while (weekStart <= rangeEnd) {
+                const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+                const count = dates.filter(d => d >= weekStart && d <= weekEnd).length;
+                if (count < target) return true;
+                weekStart = new Date(weekStart);
+                weekStart.setDate(weekStart.getDate() + 7);
+            }
+            return false;
+        }
+
         function computeStatus(code, posts) {
             const target = getWeeklyTargets()[code];
             const today = new Date(); today.setHours(0,0,0,0);
@@ -749,16 +769,16 @@
             const nextPost = future.length ? future[0] : null;
             const daysSince = lastPost ? daysBetween(lastPost, today) : null;
 
-            // Full Sun–Sat calendar week, matching the calendar page's pace
-            // logic — counts the whole week's scheduled posts, including ones
-            // later this week, not just posts already made through today.
+            // "This week" count — used only for the "X/Y posts this week" label,
+            // scoped strictly to the current Sun–Sat week.
             const weekStart = getWeekStart(today);
             const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
             const postsThisWeek = dates.filter(d => d >= weekStart && d <= weekEnd).length;
 
-            // Binary pace: green only when the week's target is fully met,
-            // red for anything short of it (0 up through target - 1 posts).
-            const status = postsThisWeek >= target ? 'ok' : 'gap';
+            // Overall status looks 30 days ahead: On Track only if every week
+            // in that window meets target; Behind Pace if any week falls short,
+            // even if the current week itself is fully met.
+            const status = hasUpcomingShortfall(target, dates) ? 'gap' : 'ok';
 
             return { status, lastPost, nextPost, daysSince, postsThisWeek, weeklyTarget: target };
         }
