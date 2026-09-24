@@ -850,7 +850,7 @@
                 const posts = (clubData[code] || {}).posts || [];
                 const info = computeStatus(code, posts);
                 const spark = buildSparkline(posts);
-                const gapLabelColor = info.status === 'ok' ? '#4ade80' : info.status === 'gap' ? '#f87171' : null;
+                const gapLabelColor = info.status === 'unknown' ? null : (info.postsThisWeek >= info.weeklyTarget ? '#4ade80' : '#f87171');
                 const gapLabel = info.status === 'unknown'
                     ? 'No posts found'
                     : `${info.postsThisWeek}/${info.weeklyTarget} posts this week`;
