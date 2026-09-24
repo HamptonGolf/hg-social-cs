@@ -727,6 +727,12 @@
             return Math.round((b - a) / 86400000);
         }
 
+        function getWeekStart(d) {
+            const ws = new Date(d); ws.setHours(0, 0, 0, 0);
+            ws.setDate(ws.getDate() - ws.getDay()); // back to Sunday
+            return ws;
+        }
+
         function computeStatus(code, posts) {
             const target = getWeeklyTargets()[code];
             const today = new Date(); today.setHours(0,0,0,0);
@@ -743,10 +749,12 @@
             const nextPost = future.length ? future[0] : null;
             const daysSince = lastPost ? daysBetween(lastPost, today) : null;
 
-            // Weekly posting pace: posts in the trailing 7-day window (today
-            // and the 6 days before it) compared against the weekly target.
-            const weekStart = new Date(today); weekStart.setDate(weekStart.getDate() - 6);
-            const postsThisWeek = dates.filter(d => d >= weekStart && d <= today).length;
+            // Full Sun–Sat calendar week, matching the calendar page's pace
+            // logic — counts the whole week's scheduled posts, including ones
+            // later this week, not just posts already made through today.
+            const weekStart = getWeekStart(today);
+            const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+            const postsThisWeek = dates.filter(d => d >= weekStart && d <= weekEnd).length;
 
             let status = 'ok';
             if (postsThisWeek === 0 || postsThisWeek <= target - 2) {
