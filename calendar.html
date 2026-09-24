@@ -771,15 +771,23 @@
         let allClubStatus = {}; // for sidebar dots, lazy-loaded
         let selectedDate = null; // dateKey of the day clicked on the calendar, if any
 
+        function applySelectionHighlight() {
+            document.querySelectorAll('.day-cell.is-selected').forEach(el => el.classList.remove('is-selected'));
+            if (selectedDate) {
+                const el = document.querySelector(`.day-cell[data-date="${selectedDate}"]`);
+                if (el) el.classList.add('is-selected');
+            }
+        }
+
         function selectDay(key) {
             selectedDate = (selectedDate === key) ? null : key;
-            renderCalendar();
+            applySelectionHighlight();
             renderPanels();
         }
 
         function clearSelectedDay() {
             selectedDate = null;
-            renderCalendar();
+            applySelectionHighlight();
             renderPanels();
         }
 
@@ -948,7 +956,7 @@
                 const isSelected = !cell.outside && key === selectedDate;
 
                 return `
-                    <div class="day-cell ${cell.outside ? 'outside' : ''} ${isToday ? 'is-today' : ''} ${gap ? 'is-gap' : ''} ${isSelected ? 'is-selected' : ''}" title="${dayPosts.length ? dayPosts.map(p => `${p.platform || ''} ${p.type || ''} — ${p.cardName || ''}`).join('\\n') : ''}" ${cell.outside ? '' : `onclick="selectDay('${key}')"`}>
+                    <div class="day-cell ${cell.outside ? 'outside' : ''} ${isToday ? 'is-today' : ''} ${gap ? 'is-gap' : ''} ${isSelected ? 'is-selected' : ''}" data-date="${key}" title="${dayPosts.length ? dayPosts.map(p => `${p.platform || ''} ${p.type || ''} — ${p.cardName || ''}`).join('\\n') : ''}" ${cell.outside ? '' : `onclick="selectDay('${key}')"`}>
                         <span class="day-num">${cell.date.getDate()}</span>
                         <div class="day-posts">${chips}${more}</div>
                         ${gap ? '<span class="gap-flag"></span>' : ''}
