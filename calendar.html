@@ -5,6 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Social Calendar - Hampton Golf</title>
     <link rel="icon" type="image/png" href="assets/logos/HG_DoorElement_CMYK.png">
+    <script>
+        // Runs immediately during head parsing — before first paint — so the
+        // branded grid color is correct from frame one instead of flashing
+        // the HG-green fallback first. CLUBS/hexToRgb declared here are
+        // shared globally with the main script at the bottom of the page.
+        const CLUBS = {
+            "AC":   { name: "Astor Creek Golf & Country Club", primary: "#2B5265", logo: "AC_Blue (2).png", gapThresholdDays: 2 },
+            "BS":   { name: "Blue Sky Golf Club", primary: "#3A8DDE", secondary: "#808284", logo: "BS_Logo_clr.png", gapThresholdDays: 3 },
+            "DCC":  { name: "Deerwood Country Club", primary: "#6BA66C", secondary: "#000000", logo: "logo-clr.png", gapThresholdDays: 3 },
+            "ECHO": { name: "Echo Hills Golf Course", primary: "#002A3A", logo: "ECHO-Logo-blk.png", gapThresholdDays: 4 },
+            "EH":   { name: "Eagle Harbor Golf Club", primary: "#008A5E", logo: "Eagle Harbor PMS 3415 vert.png", gapThresholdDays: 3 },
+            "FF":   { name: "Falcon's Fire Golf Club", primary: "#B73330", secondary: "#938055", logo: "FF-logo-clr.png", gapThresholdDays: 3 },
+            "FPP":  { name: "Fort Piqua Plaza", primary: "#A39161", logo: "Fort logo with drop shadow.png", gapThresholdDays: 4 },
+            "GK":   { name: "Glen Kernan Club", primary: "#7B7F80", logo: "GK - LOGO-BLK (1).png", gapThresholdDays: 3 },
+            "GCC":  { name: "Glynlea Country Club", primary: "#15576b", secondary: "#3399cc", logo: "Glynlea Flying Bird - clr.png", gapThresholdDays: 3 },
+            "HCC":  { name: "Hampshire Country Club", primary: "#00483A", logo: "HCC-Logo-clr.png", gapThresholdDays: 3 },
+            "HH":   { name: "Harbor Hills Country Club", primary: "#C29B43", logo: "HH-Logo-clr.png", gapThresholdDays: 3 },
+            "KGGC": { name: "Kings Gate Golf Club", primary: "#788592", secondary: "#475563", logo: "KGGC_logo_VERT_blk.png", gapThresholdDays: 3 },
+            "LO":   { name: "Laurel Oak Country Club", primary: "#C2A06E", logo: "Laurel Oak Logo_gold+blk.png", gapThresholdDays: 3 },
+            "MVC":  { name: "Medalist Village Club", primary: "#0F2544", secondary: "#C38B6D", logo: "MVC-logo.png", gapThresholdDays: 4 },
+            "NCC":  { name: "Northland Country Club", primary: "#40683C", logo: "NCC logo_blue grey.png", gapThresholdDays: 3 },
+            "PR/DWN": { name: "Panther Run Golf Club", primary: "#0082CA", secondary: "#00344C", logo: "PR-Logo-Clr.png", gapThresholdDays: 3 },
+            "PS":   { name: "PipeStone Golf Club", primary: "#653230", secondary: "#5B6670", logo: "PS_logo_clr.png", gapThresholdDays: 3 },
+            "RBCC": { name: "Rarity Bay Golf & Country Club", primary: "#003B5C", secondary: "#6AADE4", logo: "RBCC_logo-removebg-preview (2).png", gapThresholdDays: 4 },
+            "RH":   { name: "River Hall Country Club", primary: "#465967", logo: "RHlogo_color CC.png", gapThresholdDays: 3 },
+            "RMC":  { name: "Roscoe Mountain Club", primary: "#006600", logo: "RMC_PrimaryLogo_Green.png", gapThresholdDays: 3 },
+            "RVCC": { name: "Raritan Valley Country Club", primary: "#2A3561", secondary: "#D1CC8E", logo: "logo-mark.png", gapThresholdDays: 3 },
+            "SW":   { name: "Stillwater Golf & Country Club", primary: "#6FA088", secondary: "#003A70", logo: "SW_Logo-Color (1).png", gapThresholdDays: 3 },
+            "SCGC": { name: "Stone Creek Golf Club", primary: "#845D32", secondary: "#124734", logo: "SC_logo_clr.png", gapThresholdDays: 3 },
+            "STG":  { name: "Stonegate Golf Club", primary: "#546122", secondary: "#D7282F", logo: "StonegateLOGO-clr.png", gapThresholdDays: 3 },
+            "TARA": { name: "Tara Golf and Country Club", primary: "#AD8A57", secondary: "#008F4E", logo: "Tara Logos.png", gapThresholdDays: 3 },
+            "TER":  { name: "Terreno", primary: "#12425E", secondary: "#29A8AB", logo: "Terreno_by_DiVosta_Logo clr.png", gapThresholdDays: 3 },
+            "TN":   { name: "Tennessee National", primary: "#3F873F", secondary: "#76BC21", logo: "TN-clr.png", gapThresholdDays: 3 },
+            "VER":  { name: "Verandah Golf Club", primary: "#7C8956", secondary: "#D77F37", logo: "Verandah-Logo-Green.png", gapThresholdDays: 3 },
+            "VRC":  { name: "Venetian River Club", primary: "#650841", secondary: "#C7892B", logo: "Venetian_River_Club-clr.png", gapThresholdDays: 4 }
+        };
+
+        function hexToRgb(hex) {
+            const clean = (hex || '').replace('#', '');
+            const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
+            const num = parseInt(full, 16);
+            if (isNaN(num) || full.length !== 6) return '0, 180, 81';
+            return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
+        }
+
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            let code = params.get('club');
+            if (!code || !CLUBS[code]) code = Object.keys(CLUBS)[0];
+            const club = CLUBS[code];
+            document.documentElement.style.setProperty('--club-primary', club.primary);
+            document.documentElement.style.setProperty('--club-secondary', club.secondary || club.primary);
+            document.documentElement.style.setProperty('--club-primary-rgb', hexToRgb(club.primary));
+        })();
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
 
@@ -637,37 +692,8 @@
     </div>
 
     <script>
-        const CLUBS = {
-            "AC":   { name: "Astor Creek Golf & Country Club", primary: "#2B5265", logo: "AC_Blue (2).png", gapThresholdDays: 2 },
-            "BS":   { name: "Blue Sky Golf Club", primary: "#3A8DDE", secondary: "#808284", logo: "BS_Logo_clr.png", gapThresholdDays: 3 },
-            "DCC":  { name: "Deerwood Country Club", primary: "#6BA66C", secondary: "#000000", logo: "logo-clr.png", gapThresholdDays: 3 },
-            "ECHO": { name: "Echo Hills Golf Course", primary: "#002A3A", logo: "ECHO-Logo-blk.png", gapThresholdDays: 4 },
-            "EH":   { name: "Eagle Harbor Golf Club", primary: "#008A5E", logo: "Eagle Harbor PMS 3415 vert.png", gapThresholdDays: 3 },
-            "FF":   { name: "Falcon's Fire Golf Club", primary: "#B73330", secondary: "#938055", logo: "FF-logo-clr.png", gapThresholdDays: 3 },
-            "FPP":  { name: "Fort Piqua Plaza", primary: "#A39161", logo: "Fort logo with drop shadow.png", gapThresholdDays: 4 },
-            "GK":   { name: "Glen Kernan Club", primary: "#7B7F80", logo: "GK - LOGO-BLK (1).png", gapThresholdDays: 3 },
-            "GCC":  { name: "Glynlea Country Club", primary: "#15576b", secondary: "#3399cc", logo: "Glynlea Flying Bird - clr.png", gapThresholdDays: 3 },
-            "HCC":  { name: "Hampshire Country Club", primary: "#00483A", logo: "HCC-Logo-clr.png", gapThresholdDays: 3 },
-            "HH":   { name: "Harbor Hills Country Club", primary: "#C29B43", logo: "HH-Logo-clr.png", gapThresholdDays: 3 },
-            "KGGC": { name: "Kings Gate Golf Club", primary: "#788592", secondary: "#475563", logo: "KGGC_logo_VERT_blk.png", gapThresholdDays: 3 },
-            "LO":   { name: "Laurel Oak Country Club", primary: "#C2A06E", logo: "Laurel Oak Logo_gold+blk.png", gapThresholdDays: 3 },
-            "MVC":  { name: "Medalist Village Club", primary: "#0F2544", secondary: "#C38B6D", logo: "MVC-logo.png", gapThresholdDays: 4 },
-            "NCC":  { name: "Northland Country Club", primary: "#40683C", logo: "NCC logo_blue grey.png", gapThresholdDays: 3 },
-            "PR/DWN": { name: "Panther Run Golf Club", primary: "#0082CA", secondary: "#00344C", logo: "PR-Logo-Clr.png", gapThresholdDays: 3 },
-            "PS":   { name: "PipeStone Golf Club", primary: "#653230", secondary: "#5B6670", logo: "PS_logo_clr.png", gapThresholdDays: 3 },
-            "RBCC": { name: "Rarity Bay Golf & Country Club", primary: "#003B5C", secondary: "#6AADE4", logo: "RBCC_logo-removebg-preview (2).png", gapThresholdDays: 4 },
-            "RH":   { name: "River Hall Country Club", primary: "#465967", logo: "RHlogo_color CC.png", gapThresholdDays: 3 },
-            "RMC":  { name: "Roscoe Mountain Club", primary: "#006600", logo: "RMC_PrimaryLogo_Green.png", gapThresholdDays: 3 },
-            "RVCC": { name: "Raritan Valley Country Club", primary: "#2A3561", secondary: "#D1CC8E", logo: "logo-mark.png", gapThresholdDays: 3 },
-            "SW":   { name: "Stillwater Golf & Country Club", primary: "#6FA088", secondary: "#003A70", logo: "SW_Logo-Color (1).png", gapThresholdDays: 3 },
-            "SCGC": { name: "Stone Creek Golf Club", primary: "#845D32", secondary: "#124734", logo: "SC_logo_clr.png", gapThresholdDays: 3 },
-            "STG":  { name: "Stonegate Golf Club", primary: "#546122", secondary: "#D7282F", logo: "StonegateLOGO-clr.png", gapThresholdDays: 3 },
-            "TARA": { name: "Tara Golf and Country Club", primary: "#AD8A57", secondary: "#008F4E", logo: "Tara Logos.png", gapThresholdDays: 3 },
-            "TER":  { name: "Terreno", primary: "#12425E", secondary: "#29A8AB", logo: "Terreno_by_DiVosta_Logo clr.png", gapThresholdDays: 3 },
-            "TN":   { name: "Tennessee National", primary: "#3F873F", secondary: "#76BC21", logo: "TN-clr.png", gapThresholdDays: 3 },
-            "VER":  { name: "Verandah Golf Club", primary: "#7C8956", secondary: "#D77F37", logo: "Verandah-Logo-Green.png", gapThresholdDays: 3 },
-            "VRC":  { name: "Venetian River Club", primary: "#650841", secondary: "#C7892B", logo: "Venetian_River_Club-clr.png", gapThresholdDays: 4 }
-        };
+        // CLUBS is already declared in the <head> script above (shared global
+        // scope) — not redeclared here to avoid a duplicate-const error.
 
         const PLATFORM_COLORS = {
             IG: '#4ade80', INSTAGRAM: '#4ade80',
@@ -714,13 +740,7 @@
         viewDate.setDate(1);
         let allClubStatus = {}; // for sidebar dots, lazy-loaded
 
-        function hexToRgb(hex) {
-            const clean = (hex || '').replace('#', '');
-            const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
-            const num = parseInt(full, 16);
-            if (isNaN(num) || full.length !== 6) return '0, 180, 81';
-            return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
-        }
+        // hexToRgb is already declared in the <head> script above.
 
         function applyBranding(code) {
             const club = CLUBS[code];
