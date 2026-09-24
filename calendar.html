@@ -982,10 +982,13 @@
             const lastPost = past.length ? new Date(past[past.length - 1] + 'T00:00:00') : null;
             const nextPost = future.length ? new Date(future[0] + 'T00:00:00') : null;
 
-            const weekStart = new Date(today); weekStart.setDate(weekStart.getDate() - 6);
+            // Full Sun–Sat week, matching isGapDay's pace calculation — counts
+            // the whole week's scheduled posts, not just those up through today.
+            const weekStart = getWeekStart(today);
+            const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
             const postsThisWeek = posts.filter(p => {
                 const pd = new Date(p.date + 'T00:00:00');
-                return pd >= weekStart && pd <= today;
+                return pd >= weekStart && pd <= weekEnd;
             }).length;
 
             const gapRanges = computeGapRanges();
