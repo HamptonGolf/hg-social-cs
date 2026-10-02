@@ -860,6 +860,16 @@
         function sourceLabel(p) {
             return p.source === 'manual' ? 'manual post' : p.source === 'later' ? 'imported from Later' : 'from Trello';
         }
+        // Display label: omits the type prefix when the title already says it.
+        function postLabel(p, fallback) {
+            const name = p.cardName || fallback || '';
+            const type = p.type || '';
+            if (!type) return name;
+            if (!name) return type;
+            if (name.toLowerCase().indexOf(type.toLowerCase()) !== -1) return name;
+            return type + ' — ' + name;
+        }
+
         // Handles Trello-style "10AM" / "10:30PM" and imported 24h "14:30".
         function formatPostTime(t) {
             if (!t) return '';
@@ -1083,7 +1093,7 @@
                             <div class="upcoming-item" style="cursor:pointer;" onclick="openPostLightbox(${p._uid})">
                                 <span class="upcoming-date">${formatShort(new Date(p.date + 'T00:00:00'))}</span>
                                 <span class="upcoming-platform" style="background:${color}">${(p.platform || '?').toUpperCase()}</span>
-                                <span class="upcoming-label">${p.type ? escHtml(p.type) + ' — ' : ''}${escHtml(p.cardName || '')}</span>
+                                <span class="upcoming-label">${escHtml(postLabel(p))}</span>
                             </div>
                         `;
                     }).join('') + backLink;
@@ -1104,7 +1114,7 @@
                             <div class="upcoming-item" style="cursor:pointer;" onclick="openPostLightbox(${p._uid})">
                                 <span class="upcoming-date">${formatShort(new Date(p.date + 'T00:00:00'))}</span>
                                 <span class="upcoming-platform" style="background:${color}">${(p.platform || '?').toUpperCase()}</span>
-                                <span class="upcoming-label">${p.type ? escHtml(p.type) + ' — ' : ''}${escHtml(p.cardName || '')}</span>
+                                <span class="upcoming-label">${escHtml(postLabel(p))}</span>
                             </div>
                         `;
                     }).join('');
@@ -1261,6 +1271,13 @@
                     <div class="flabel">Title / Description</div>
                     <div class="fvalue">${escHtml(post.cardName) || '—'}</div>
                 </div>
+                ${post.source === 'later' ? `
+                <div class="lightbox-field">
+                    <div class="flabel">Caption</div>
+                    <div class="fvalue" style="white-space:pre-wrap;">${post.caption ? escHtml(post.caption) : (post.type === 'Story' ? 'Story — no caption' : 'No caption in Later')}</div>
+                    ${post.caption && /…$/.test(post.caption) ? '<div style="font-size:0.72rem;opacity:0.6;margin-top:4px;">Later\'s list view cuts captions at about 60 characters, so this is only the start of the caption.</div>' : ''}
+                </div>
+                ` : ''}
                 ${post.profile ? `
                 <div class="lightbox-field">
                     <div class="flabel">Later Profile</div>
@@ -1365,7 +1382,7 @@
                 return `
                     <div class="day-list-row" onclick="closeDayList(); openPostLightbox(${p._uid});">
                         <span class="day-list-platform" style="background:${color}">${escHtml((p.platform || '').toUpperCase())}</span>
-                        <span class="day-list-name">${p.type ? escHtml(p.type) + ' — ' : ''}${escHtml(p.cardName || 'Untitled')}</span>
+                        <span class="day-list-name">${escHtml(postLabel(p, 'Untitled'))}</span>
                     </div>
                 `;
             }).join('');
