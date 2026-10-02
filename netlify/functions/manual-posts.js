@@ -215,6 +215,7 @@ async function handleImportLater(event, body, headers) {
       platform: String(p.platform).toUpperCase(),
       type: p.type || '',
       cardName: p.cardName || '',
+      caption: p.caption || '',
       cardUrl: null,
       profile: p.profile || '',
       source: 'later'
